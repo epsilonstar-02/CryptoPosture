@@ -1,0 +1,7 @@
+python-dotenv
+scapy
+cryptography
+streamlit
+fastapi
+uvicorn
+scikit-learn
