@@ -91,11 +91,17 @@ def _generate_samples():
         print(f"  {name}: {status}")
 
 
-def _run_dashboard():
+def _run_dashboard(host: str = "0.0.0.0", port: int = 8501):
     """Launch the Streamlit dashboard."""
-    print("🚀 Launching Streamlit dashboard...")
+    print(f"🚀 Launching Streamlit dashboard on http://{host}:{port}...")
     dashboard_path = Path(__file__).parent / "dashboard" / "app.py"
-    subprocess.run([sys.executable, "-m", "streamlit", "run", str(dashboard_path), "--server.headless", "true"], check=True)
+    cmd = [
+        sys.executable, "-m", "streamlit", "run", str(dashboard_path),
+        "--server.address", host,
+        "--server.port", str(port),
+        "--server.headless", "true"
+    ]
+    subprocess.run(cmd, check=True)
 
 
 def _run_api(host: str = "0.0.0.0", port: int = 8000):
@@ -122,8 +128,8 @@ Examples:
   python main.py --analyze capture.pcap
   python main.py --analyze capture.pcap --html --output report.html
   python main.py --generate-samples
-  python main.py --run-dashboard
-  python main.py --run-api --port 8000
+  python main.py --run-dashboard --host 0.0.0.0 --port 8501
+  python main.py --run-api --host 0.0.0.0 --port 8000
   python main.py --test
         """
     )
@@ -137,8 +143,8 @@ Examples:
 
     parser.add_argument("--html",   action="store_true", help="Export HTML report instead of JSON")
     parser.add_argument("--output", metavar="FILE",      help="Output file path for report")
-    parser.add_argument("--host",   default="0.0.0.0",   help="API server host (default: 0.0.0.0)")
-    parser.add_argument("--port",   type=int, default=8000, help="API server port (default: 8000)")
+    parser.add_argument("--host",   default="0.0.0.0",   help="Host address to bind to (default: 0.0.0.0)")
+    parser.add_argument("--port",   type=int, default=None, help="Port to bind to (default: 8501 for dashboard, 8000 for API)")
     parser.add_argument("--no-ml",  action="store_true", help="Disable ML anomaly detection")
 
     args = parser.parse_args()
@@ -148,12 +154,15 @@ Examples:
     elif args.generate_samples:
         _generate_samples()
     elif args.run_dashboard:
-        _run_dashboard()
+        port = args.port if args.port is not None else 8501
+        _run_dashboard(host=args.host, port=port)
     elif args.run_api:
-        _run_api(host=args.host, port=args.port)
+        port = args.port if args.port is not None else 8000
+        _run_api(host=args.host, port=port)
     elif args.test:
         _run_tests()
 
 
 if __name__ == "__main__":
     main()
+
