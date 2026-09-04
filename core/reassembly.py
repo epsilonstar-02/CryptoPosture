@@ -46,6 +46,17 @@ def _is_implicit_tls_port(src_port: int, dst_port: int) -> bool:
     return dst_port in IMPLICIT_TLS_PORTS or src_port in IMPLICIT_TLS_PORTS
 
 
+def seq_diff(b: int, a: int) -> int:
+    """
+    Compute signed distance (b - a) in 32-bit TCP sequence number space [-2^31, 2^31 - 1].
+    Correctly accounts for sequence wrap-around across 2^32 - 1 per RFC 1323 / RFC 7323.
+    """
+    diff = (b - a) & 0xFFFFFFFF
+    if diff >= 0x80000000:
+        diff -= 0x100000000
+    return diff
+
+
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
@@ -70,7 +81,7 @@ class TCPStream:
     dst_port:     int
     protocol:     Protocol
 
-    # Ordered ordered payloads (client→server, server→client)
+    # Ordered payloads (client→server, server→client)
     client_data:  bytearray = field(default_factory=bytearray)
     server_data:  bytearray = field(default_factory=bytearray)
 
@@ -82,6 +93,112 @@ class TCPStream:
     # Raw ordered segment list (for TLS record boundary detection)
     client_segments: List[TCPSegment] = field(default_factory=list)
     server_segments: List[TCPSegment] = field(default_factory=list)
+
+
+# ---------------------------------------------------------------------------
+# Directional TCP Stream Reassembler
+# ---------------------------------------------------------------------------
+
+class _TCPDirectionReassembler:
+    """
+    Reassembles a single unidirectional TCP stream from unordered, overlapping,
+    or duplicate TCP segments.
+    """
+
+    def __init__(self, from_client: bool):
+        self.from_client = from_client
+        self.ref_seq: Optional[int] = None
+        self.syn_seen: bool = False
+        self.expected_start_seq: Optional[int] = None
+        self.raw_segments: List[Tuple[int, bytes, int]] = []  # (seq, payload, arrival_idx)
+        self.arrival_counter: int = 0
+
+    def record_syn(self, syn_seq: int):
+        """Record a SYN packet sequence number to anchor the stream sequence space."""
+        self.syn_seen = True
+        # Application data starts after SYN flag: (ISN + 1)
+        self.expected_start_seq = (syn_seq + 1) & 0xFFFFFFFF
+        if self.ref_seq is None:
+            self.ref_seq = self.expected_start_seq
+
+    def add_segment(self, seq: int, payload: bytes, is_syn: bool = False):
+        """Buffer a payload segment for reassembly."""
+        if not payload:
+            return
+        if is_syn:
+            seq = (seq + 1) & 0xFFFFFFFF
+        if self.ref_seq is None:
+            self.ref_seq = seq
+
+        self.raw_segments.append((seq, payload, self.arrival_counter))
+        self.arrival_counter += 1
+
+    def reassemble(self) -> Tuple[bytearray, List[TCPSegment]]:
+        """
+        Reorder, deduplicate, and merge segments into a contiguous byte stream
+        and an ordered list of distinct non-overlapping TCP segments.
+        """
+        if not self.raw_segments:
+            return bytearray(), []
+
+        ref_seq = self.ref_seq if self.ref_seq is not None else self.raw_segments[0][0]
+
+        # Convert sequence numbers to linear signed offsets relative to ref_seq
+        items: List[Tuple[int, int, int, bytes, int]] = []
+        for seq, payload, arrival_idx in self.raw_segments:
+            start_offset = seq_diff(seq, ref_seq)
+            end_offset = start_offset + len(payload)
+            items.append((start_offset, end_offset, seq, payload, arrival_idx))
+
+        # Sort segments:
+        # 1. start_offset ascending (earliest sequence number first)
+        # 2. length descending (prefer larger chunks first if start is identical)
+        # 3. arrival_idx ascending (preserve FIFO for equal spans)
+        items.sort(key=lambda x: (x[0], -len(x[3]), x[4]))
+
+        # If SYN was observed, trim any pre-SYN noise or partial handshake data
+        if self.syn_seen and self.expected_start_seq is not None:
+            syn_offset = seq_diff(self.expected_start_seq, ref_seq)
+            filtered = []
+            for start_offset, end_offset, seq, payload, arrival_idx in items:
+                if end_offset <= syn_offset:
+                    continue
+                if start_offset < syn_offset:
+                    trim = syn_offset - start_offset
+                    payload = payload[trim:]
+                    seq = (seq + trim) & 0xFFFFFFFF
+                    start_offset = syn_offset
+                filtered.append((start_offset, end_offset, seq, payload, arrival_idx))
+            items = filtered
+
+        result_segments: List[TCPSegment] = []
+        current_offset: Optional[int] = None
+
+        for start_offset, end_offset, seq, payload, _ in items:
+            if current_offset is None:
+                result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client))
+                current_offset = end_offset
+                continue
+
+            # Case 1: Fully contained within already processed sequence range (duplicate/retransmission)
+            if end_offset <= current_offset:
+                continue
+
+            # Case 2: Partial overlap on the left with already processed data
+            if start_offset < current_offset:
+                trim_len = current_offset - start_offset
+                trimmed_payload = payload[trim_len:]
+                trimmed_seq = (seq + trim_len) & 0xFFFFFFFF
+                result_segments.append(TCPSegment(seq=trimmed_seq, payload=trimmed_payload, from_client=self.from_client))
+                current_offset = end_offset
+                continue
+
+            # Case 3: Contiguous (start_offset == current_offset) or Gap (start_offset > current_offset)
+            result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client))
+            current_offset = end_offset
+
+        data = bytearray(b"".join(seg.payload for seg in result_segments))
+        return data, result_segments
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +223,9 @@ class StreamReassembler:
         """
         self.include_all_ports = include_all_ports
         self._flows: Dict[str, TCPStream] = {}
-        # Temporary seq-keyed buffers: flow_key → {seq: bytes}
+        self._client_reassemblers: Dict[str, _TCPDirectionReassembler] = {}
+        self._server_reassemblers: Dict[str, _TCPDirectionReassembler] = {}
+        # Temporary seq-keyed buffers for compatibility: flow_key → {seq: bytes}
         self._client_buf: Dict[str, Dict[int, bytes]] = defaultdict(dict)
         self._server_buf: Dict[str, Dict[int, bytes]] = defaultdict(dict)
 
@@ -115,8 +234,6 @@ class StreamReassembler:
         Return a canonical flow key and a boolean indicating client→server direction.
         Lower-port side is always treated as the server (convention for email).
         """
-        a = (src_ip, src_port)
-        b = (dst_ip, dst_port)
         if dst_port in (SMTP_PORTS | IMAP_PORTS | POP3_PORTS) or dst_port < src_port:
             key = f"{src_ip}:{src_port}->{dst_ip}:{dst_port}"
             return key, True      # src is client
@@ -129,20 +246,19 @@ class StreamReassembler:
         Process a list of Scapy packets and return assembled TCP streams.
         """
         for pkt in packets:
-            if not (pkt.haslayer(IP) and pkt.haslayer(TCP)):
+            if pkt.haslayer(IP) and pkt.haslayer(TCP):
+                ip = pkt[IP]
+                src_ip, dst_ip = ip.src, ip.dst
+            elif pkt.haslayer("IPv6") and pkt.haslayer(TCP):
+                ip = pkt["IPv6"]
+                src_ip, dst_ip = ip.src, ip.dst
+            else:
                 continue
 
-            ip  = pkt[IP]
             tcp = pkt[TCP]
-
-            src_ip   = ip.src
-            dst_ip   = ip.dst
             src_port = tcp.sport
             dst_port = tcp.dport
-            payload  = bytes(tcp.payload)
-
-            if not payload:
-                continue
+            payload  = bytes(tcp.payload) if tcp.payload else b""
 
             protocol = _port_to_protocol(src_port, dst_port)
             if protocol == Protocol.UNKNOWN and not self.include_all_ports:
@@ -150,7 +266,7 @@ class StreamReassembler:
 
             flow_key, from_client = self._flow_key(src_ip, dst_ip, src_port, dst_port)
 
-            # Initialize stream on first sight
+            # Initialize stream and reassemblers on first sight
             if flow_key not in self._flows:
                 # Normalize: stream's src/dst always represents client/server
                 if from_client:
@@ -169,24 +285,45 @@ class StreamReassembler:
                     protocol     = protocol,
                     is_implicit_tls = _is_implicit_tls_port(src_port, dst_port),
                 )
+                self._client_reassemblers[flow_key] = _TCPDirectionReassembler(from_client=True)
+                self._server_reassemblers[flow_key] = _TCPDirectionReassembler(from_client=False)
 
             stream = self._flows[flow_key]
             stream.packet_count += 1
-            stream.byte_count   += len(payload)
 
-            seg = TCPSegment(seq=tcp.seq, payload=payload, from_client=from_client)
-            if from_client:
-                stream.client_data.extend(payload)
-                stream.client_segments.append(seg)
-            else:
-                stream.server_data.extend(payload)
-                stream.server_segments.append(seg)
+            is_syn = bool(tcp.flags & 0x02)
+            c_reassembler = self._client_reassemblers[flow_key]
+            s_reassembler = self._server_reassemblers[flow_key]
+
+            target_reassembler = c_reassembler if from_client else s_reassembler
+
+            if is_syn:
+                target_reassembler.record_syn(tcp.seq)
+
+            if payload:
+                target_reassembler.add_segment(tcp.seq, payload, is_syn=is_syn)
+
+        # Reassemble and finalize each flow's bidirectional streams
+        for flow_key, stream in self._flows.items():
+            c_data, c_segs = self._client_reassemblers[flow_key].reassemble()
+            s_data, s_segs = self._server_reassemblers[flow_key].reassemble()
+
+            stream.client_data = c_data
+            stream.server_data = s_data
+            stream.client_segments = c_segs
+            stream.server_segments = s_segs
+            stream.byte_count = len(c_data) + len(s_data)
+
+            self._client_buf[flow_key] = {seg.seq: seg.payload for seg in c_segs}
+            self._server_buf[flow_key] = {seg.seq: seg.payload for seg in s_segs}
 
         return list(self._flows.values())
 
     def reset(self):
         """Clear all state for reuse."""
         self._flows.clear()
+        self._client_reassemblers.clear()
+        self._server_reassemblers.clear()
         self._client_buf.clear()
         self._server_buf.clear()
 

@@ -462,9 +462,15 @@ def generate_all(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> dict[str, Path]
         try:
             path = gen_fn(output_dir)
             results[name] = path
-            print(f"✓ ({path.stat().st_size:,} bytes)")
+            try:
+                print(f"✓ ({path.stat().st_size:,} bytes)")
+            except UnicodeEncodeError:
+                print(f"[OK] ({path.stat().st_size:,} bytes)")
         except Exception as e:
-            print(f"✗ ERROR: {e}")
+            try:
+                print(f"✗ ERROR: {e}")
+            except UnicodeEncodeError:
+                print(f"[FAIL] ERROR: {e}")
             results[name] = None
 
     return results
