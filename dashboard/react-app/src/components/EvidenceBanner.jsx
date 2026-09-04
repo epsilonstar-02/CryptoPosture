@@ -1,5 +1,8 @@
-export default function EvidenceBanner({ evidence, analysisTime }) {
+import { useState, useCallback } from 'react'
+
+export default function EvidenceBanner({ evidence }) {
   const ev = evidence || {}
+  const [copied, setCopied] = useState(false)
 
   const formatBytes = (b) => {
     if (!b) return '0 B'
@@ -9,49 +12,49 @@ export default function EvidenceBanner({ evidence, analysisTime }) {
   }
 
   const shortHash = ev.sha256_hash
-    ? `${ev.sha256_hash.slice(0, 16)}...${ev.sha256_hash.slice(-8)}`
+    ? `${ev.sha256_hash.slice(0, 12)}…${ev.sha256_hash.slice(-8)}`
     : '—'
+
+  const copyHash = useCallback(() => {
+    if (!ev.sha256_hash) return
+    navigator.clipboard.writeText(ev.sha256_hash).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    })
+  }, [ev.sha256_hash])
 
   return (
     <div className="panel evidence-banner fade-in">
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, minWidth: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span className="evidence-filename">📄 {ev.filename || 'Unknown'}</span>
           <span className="integrity-badge">✔ INTEGRITY VERIFIED</span>
         </div>
-        <div className="evidence-hash mono">
-          SHA-256&nbsp;
-          <span title={ev.sha256_hash}>{ev.sha256_hash || '—'}</span>
+        <div className="evidence-hash">
+          <span style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.6rem', letterSpacing: '0.08em' }}>SHA-256</span>
+          <span
+            className={`hash-chip${copied ? ' hash-chip--copied' : ''}`}
+            onClick={copyHash}
+            title={ev.sha256_hash || '—'}
+          >
+            {copied ? '✓ Copied!' : shortHash}
+          </span>
         </div>
       </div>
 
       <div className="evidence-meta">
         <div className="evidence-meta-item">
-          <span style={{ color: 'var(--text-muted)' }}>PKT</span>
-          <span style={{ color: 'var(--text-accent)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            {(ev.total_packets || 0).toLocaleString()}
-          </span>
+          <span className="evidence-meta-key">Packets</span>
+          <span className="evidence-meta-val">{(ev.total_packets || 0).toLocaleString()}</span>
         </div>
         <div className="evidence-meta-item">
-          <span style={{ color: 'var(--text-muted)' }}>SIZE</span>
-          <span style={{ color: 'var(--text-accent)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            {formatBytes(ev.file_size_bytes)}
-          </span>
+          <span className="evidence-meta-key">Size</span>
+          <span className="evidence-meta-val">{formatBytes(ev.file_size_bytes)}</span>
         </div>
         <div className="evidence-meta-item">
-          <span style={{ color: 'var(--text-muted)' }}>DURATION</span>
-          <span style={{ color: 'var(--text-accent)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-            {(ev.capture_duration || 0).toFixed(3)}s
-          </span>
+          <span className="evidence-meta-key">Duration</span>
+          <span className="evidence-meta-val">{(ev.capture_duration || 0).toFixed(3)}s</span>
         </div>
-        {analysisTime != null && (
-          <div className="evidence-meta-item">
-            <span style={{ color: 'var(--text-muted)' }}>ANALYZED IN</span>
-            <span style={{ color: 'var(--risk-low)', fontFamily: 'var(--font-mono)', fontWeight: 600 }}>
-              {analysisTime.toFixed(2)}s
-            </span>
-          </div>
-        )}
       </div>
     </div>
   )

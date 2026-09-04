@@ -24,12 +24,12 @@ export default function ComponentScoreChart({ scores }) {
       {
         label: 'Score',
         data: values,
-        backgroundColor: 'rgba(59, 130, 246, 0.12)',
-        borderColor: 'rgba(59, 130, 246, 0.8)',
-        borderWidth: 2,
-        pointBackgroundColor: 'rgba(59, 130, 246, 0.9)',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 1,
+        backgroundColor: 'rgba(61, 216, 232, 0.08)',
+        borderColor:     'rgba(61, 216, 232, 0.7)',
+        borderWidth: 1.5,
+        pointBackgroundColor: 'rgba(61, 216, 232, 0.9)',
+        pointBorderColor:     'rgba(9, 17, 24, 0.9)',
+        pointBorderWidth: 1.5,
         pointRadius: 4,
         pointHoverRadius: 6,
       },
@@ -45,28 +45,28 @@ export default function ComponentScoreChart({ scores }) {
         max: 100,
         ticks: {
           stepSize: 25,
-          color: 'rgba(100,116,139,0.7)',
-          font: { family: "'JetBrains Mono', monospace", size: 9 },
+          color: 'rgba(76, 106, 112, 0.8)',
+          font: { family: "'JetBrains Mono', monospace", size: 8 },
           backdropColor: 'transparent',
         },
-        grid:        { color: 'rgba(15, 30, 61, 0.8)' },
-        angleLines:  { color: 'rgba(15, 30, 61, 0.8)' },
+        grid:        { color: 'rgba(22, 43, 54, 0.9)' },
+        angleLines:  { color: 'rgba(22, 43, 54, 0.9)' },
         pointLabels: {
-          color: 'rgba(148,163,184,0.9)',
-          font: { family: "'Inter', sans-serif", size: 10, weight: '600' },
+          color: 'rgba(133, 168, 170, 0.9)',
+          font: { family: "'Inter', sans-serif", size: 9.5, weight: '600' },
         },
       },
     },
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: 'rgba(8,13,26,0.95)',
-        borderColor: 'rgba(59,130,246,0.3)',
+        backgroundColor: 'rgba(9, 17, 24, 0.97)',
+        borderColor: 'rgba(61, 216, 232, 0.25)',
         borderWidth: 1,
-        titleColor: '#93c5fd',
-        bodyColor: '#e2e8f0',
-        titleFont: { family: "'JetBrains Mono', monospace", size: 11 },
-        bodyFont:  { family: "'JetBrains Mono', monospace", size: 11 },
+        titleColor: '#3dd8e8',
+        bodyColor: '#e4f0ef',
+        titleFont: { family: "'JetBrains Mono', monospace", size: 10 },
+        bodyFont:  { family: "'JetBrains Mono', monospace", size: 10 },
         padding: 10,
         callbacks: {
           label: ctx => ` ${ctx.parsed.r.toFixed(1)} / 100`,
@@ -80,7 +80,7 @@ export default function ComponentScoreChart({ scores }) {
   }
 
   return (
-    <div style={{ padding: 16, maxWidth: 280, margin: '0 auto' }}>
+    <div style={{ padding: 12, maxWidth: 250, margin: '0 auto' }}>
       <Radar data={data} options={options} />
     </div>
   )

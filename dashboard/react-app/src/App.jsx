@@ -1,124 +1,212 @@
-import { useState, useEffect, useCallback } from 'react'
-import Sidebar          from './components/Sidebar.jsx'
-import LandingHero      from './components/LandingHero.jsx'
-import EvidenceBanner   from './components/EvidenceBanner.jsx'
-import PostureGauge     from './components/PostureGauge.jsx'
-import RiskMatrix       from './components/RiskMatrix.jsx'
-import SessionTable     from './components/SessionTable.jsx'
-import ExportPanel      from './components/ExportPanel.jsx'
-import LoadingOverlay   from './components/LoadingOverlay.jsx'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
+import LandingHero    from './components/LandingHero.jsx'
+import AnalysisPage   from './components/AnalysisPage.jsx'
+import LoadingOverlay from './components/LoadingOverlay.jsx'
+import Toast, { useToast } from './components/Toast.jsx'
 
 const API = ''
 
 export default function App() {
-  const [result,     setResult]     = useState(null)   // full API response
-  const [loading,    setLoading]    = useState(false)
-  const [apiStatus,  setApiStatus]  = useState('loading')
-  const [analysisMs, setAnalysisMs] = useState(null)
+  const [result,        setResult]        = useState(null)
+  const [loading,       setLoading]       = useState(false)
+  const [analysisError, setAnalysisError] = useState(false)
+  const [apiStatus,     setApiStatus]     = useState('loading')
+  const [sampleCount,   setSampleCount]   = useState(null)
+  const [analysisMs,    setAnalysisMs]    = useState(null)
+  const [lastAnalyzedAt, setLastAnalyzedAt] = useState(null)
+  const { toasts, push, dismiss } = useToast()
 
-  // API health check — must use a /api/* path so Vite proxies it to FastAPI.
-  // Fetching '/' only hits the Vite dev server (returns HTML, not JSON).
+  // Holds the finished API result until the overlay signals it's done
+  const pendingRef = useRef(null)
+
+  const navigate  = useNavigate()
+  const location  = useLocation()
+
+  /* ── API health-check (feeds the Telemetry card) ── */
   useEffect(() => {
     const check = async () => {
       try {
         const res = await fetch(`${API}/api/samples`, { signal: AbortSignal.timeout(4000) })
-        setApiStatus(res.ok ? 'online' : 'offline')
+        if (res.ok) {
+          setApiStatus('online')
+          const data = await res.json()
+          setSampleCount(Array.isArray(data) ? data.length : null)
+        } else {
+          setApiStatus('offline')
+        }
       } catch {
         setApiStatus('offline')
       }
     }
     check()
-    const id = setInterval(check, 10000) // re-check every 10 s
+    const id = setInterval(check, 10000)
     return () => clearInterval(id)
   }, [])
 
-  const handleResult = useCallback((data, elapsedSec) => {
-    setResult(data)
-    if (elapsedSec != null) setAnalysisMs(elapsedSec)
-  }, [])
-
-  const handleLoading = useCallback((isLoading) => {
-    setLoading(isLoading)
-    if (isLoading) {
-      setResult(null)
-      setAnalysisMs(null)
-      window.__analysisStart = performance.now()
-    } else {
-      const elapsed = window.__analysisStart
-        ? (performance.now() - window.__analysisStart) / 1000
-        : null
-      setAnalysisMs(elapsed)
+  /* Called by LoadingOverlay once all steps + hold are complete */
+  const handleOverlayDone = useCallback(() => {
+    if (pendingRef.current) {
+      setResult(pendingRef.current)
+      setLastAnalyzedAt(new Date())
+      setAnalysisMs((performance.now() - window.__analysisStart) / 1000)
+      pendingRef.current = null
+      setAnalysisError(false)
+      navigate('/analysis')
     }
-  }, [])
+  }, [navigate])
 
-  const ev   = result?.evidence || {}
-  const epi  = result?.enterprise_posture_index ?? 0
-  const tier = result?.overall_risk_tier ?? 'CRITICAL'
-  const rb   = result?.risk_breakdown || {}
-  const sessions = result?.sessions || []
+  /* ── File upload ── */
+  const runAnalysis = useCallback(async (formData) => {
+    setLoading(true)
+    setAnalysisError(false)
+    setResult(null)
+    setAnalysisMs(null)
+    pendingRef.current = null
+    window.__analysisStart = performance.now()
+    try {
+      const res = await fetch(`${API}/api/analyze`, { method: 'POST', body: formData })
+      if (!res.ok) throw new Error(`Server error: ${res.status}`)
+      pendingRef.current = await res.json()   // stash — overlay will commit it
+    } catch (e) {
+      push(`Analysis failed: ${e.message}`, 'error')
+      pendingRef.current = null
+      setAnalysisError(true)
+    } finally {
+      setLoading(false)   // signals overlay to finish its steps then call onDone
+    }
+  }, [push])
+
+  const handleFile = useCallback((file) => {
+    if (!file) return
+    if (!file.name.match(/\.(pcap|pcapng)$/i)) {
+      push('Please upload a .pcap or .pcapng file.', 'error')
+      return
+    }
+    const fd = new FormData()
+    fd.append('file', file)
+    runAnalysis(fd)
+  }, [runAnalysis, push])
+
+  /* ── Sample PCAP ── */
+  const handleSample = useCallback(async (name) => {
+    setLoading(true)
+    setAnalysisError(false)
+    setResult(null)
+    setAnalysisMs(null)
+    pendingRef.current = null
+    window.__analysisStart = performance.now()
+    try {
+      const res = await fetch(`${API}/api/samples/${name}/analyze`)
+      if (!res.ok) throw new Error(`Server error: ${res.status}`)
+      pendingRef.current = await res.json()   // stash — overlay will commit it
+    } catch (e) {
+      push(`Sample analysis failed: ${e.message}`, 'error')
+      pendingRef.current = null
+      setAnalysisError(true)
+    } finally {
+      setLoading(false)   // signals overlay to finish its steps then call onDone
+    }
+  }, [push])
+
+  /* ── Start new case ── */
+  const startNewCase = useCallback(() => {
+    setResult(null)
+    setAnalysisMs(null)
+    setAnalysisError(false)
+    navigate('/')
+  }, [navigate])
+
+  const ev = result?.evidence || {}
+  const isAnalysisRoute = location.pathname === '/analysis'
 
   return (
-    <div className="layout">
-      <Sidebar
-        onResult={handleResult}
-        onLoading={handleLoading}
-        loading={loading}
-        apiStatus={apiStatus}
-      />
+    <div className="app-shell">
+      {/* ── Top bar ── */}
+      <header className="topbar">
+        {/* Logo — always navigates home */}
+        <Link to="/" className="topbar-brand" onClick={startNewCase}>
+          <div className="topbar-mark">
+            <img src="/assets/shield-check.svg" alt="" />
+          </div>
+          <span>Crypto<span>Posture</span></span>
+        </Link>
 
-      <main className="main-content">
-        <LoadingOverlay visible={loading} />
+        <div className="topbar-sep" />
 
-        {!result ? (
-          <LandingHero />
-        ) : (
+        <div className="topbar-context">
+          <span className="topbar-dot" />
+          PASSIVE FORENSICS
+          <i />
+          EMAIL CRYPTOGRAPHY
+        </div>
+
+        {isAnalysisRoute && result && (
           <>
-            {/* Page header */}
-            <div className="header-bar fade-in">
-              <h1 className="page-title">Email Cryptographic Forensics</h1>
-            </div>
-            <p className="page-subtitle">
-              AI-Assisted Passive Network Forensics · NIST SP 800-52 · RFC 9325 · RFC 8314
-            </p>
-
-            {/* Evidence banner */}
-            <EvidenceBanner evidence={ev} analysisTime={analysisMs} />
-
-            {/* Posture + Risk */}
-            <div className="posture-section">
-              <PostureGauge score={epi} tier={tier} />
-              <RiskMatrix
-                breakdown={rb}
-                totalViolations={result?.total_violations}
-                sessionCount={result?.session_count}
-              />
-            </div>
-
-            {/* Session table */}
-            <div className="section-header">
-              <span className="section-title">Session Analysis</span>
-              <div className="section-line" />
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
-                {sessions.length} session{sessions.length !== 1 ? 's' : ''} · click row to expand
-              </span>
-            </div>
-            <SessionTable sessions={sessions} />
-
-            {/* Export */}
-            <div className="section-header">
-              <span className="section-title">Export Reports</span>
-              <div className="section-line" />
-            </div>
-            <ExportPanel data={result} />
-
-            {/* Footer */}
-            <div className="footer">
-              🔐 CryptoPosture · AI-Assisted Passive Network Forensic Framework for Enterprise Email Cryptographic Posture Assessment<br />
-              SIH-26 Demo · For authorized forensic use only · All analyses performed offline, no data transmitted externally.
+            <div className="topbar-sep" />
+            <div className="topbar-breadcrumb">
+              <span>Analysis</span>
+              <span className="topbar-breadcrumb-sep">›</span>
+              <span className="topbar-breadcrumb-file">{ev.filename || 'unknown'}</span>
             </div>
           </>
         )}
+
+        <div className="topbar-actions">
+          <span className={`api-state api-state--${apiStatus}`}>
+            <b />
+            {apiStatus === 'online' ? 'ONLINE' : apiStatus === 'loading' ? 'CONNECTING' : 'OFFLINE'}
+          </span>
+          {isAnalysisRoute && result && (
+            <button className="new-case" onClick={startNewCase}>+ New case</button>
+          )}
+        </div>
+      </header>
+
+      <main className="main-content">
+        <LoadingOverlay loading={loading} hasError={analysisError} onDone={handleOverlayDone} />
+
+        <Routes>
+          {/* Home / Landing page */}
+          <Route
+            path="/"
+            element={
+              <LandingHero
+                onFile={handleFile}
+                onSample={handleSample}
+                loading={loading}
+                apiStatus={apiStatus}
+                sampleCount={sampleCount}
+                lastAnalyzedAt={lastAnalyzedAt}
+                lastResult={result}
+              />
+            }
+          />
+
+          {/* Analysis results page */}
+          <Route
+            path="/analysis"
+            element={
+              result ? (
+                <AnalysisPage
+                  result={result}
+                  analysisMs={analysisMs}
+                  onToast={push}
+                />
+              ) : (
+                /* Guard: if someone navigates to /analysis without data, redirect home */
+                <div className="page-inner" style={{ paddingTop: 60, textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', fontSize: '0.8rem' }}>
+                    No analysis in session. <Link to="/" style={{ color: 'var(--accent-blue)' }}>← Return home</Link>
+                  </p>
+                </div>
+              )
+            }
+          />
+        </Routes>
       </main>
+
+      <Toast toasts={toasts} onDismiss={dismiss} />
     </div>
   )
 }

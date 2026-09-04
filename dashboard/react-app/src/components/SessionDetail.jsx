@@ -30,7 +30,7 @@ function ScoreBars({ scores }) {
             <div className="score-bar-track">
               <div
                 className="score-bar-fill"
-                style={{ height: `${val}%`, background: `linear-gradient(180deg, ${color}aa, ${color})` }}
+                style={{ height: `${val}%`, background: `linear-gradient(180deg, ${color}88, ${color})` }}
               />
             </div>
             <div className="score-bar-val" style={{ color }}>{val.toFixed(0)}</div>
@@ -50,9 +50,35 @@ function DetailRow({ label, value, valueClass }) {
   )
 }
 
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: '0.6rem',
+      fontWeight: 700,
+      letterSpacing: '0.12em',
+      textTransform: 'uppercase',
+      color: 'var(--text-muted)',
+      marginBottom: 10,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 7,
+    }}>
+      <span style={{
+        width: 12, height: 12,
+        borderRadius: 2,
+        background: 'rgba(61,216,232,0.15)',
+        border: '1px solid rgba(61,216,232,0.3)',
+        display: 'inline-block',
+        flexShrink: 0,
+      }} />
+      {children}
+    </div>
+  )
+}
+
 export default function SessionDetail({ session }) {
   if (!session) return null
-  const s   = session
+  const s    = session
   const cert = s.cert || {}
   const fp   = s.fingerprints || {}
   const ml   = s.ml_anomaly || {}
@@ -60,22 +86,25 @@ export default function SessionDetail({ session }) {
   const cs   = s.component_scores || {}
   const features = ml.top_features || {}
 
-  const certValColor = cert.validity === 'Valid' ? 'detail-val--green'
-    : cert.validity === 'Expired' ? 'detail-val--red' : 'detail-val--yellow'
+  const certValColor = cert.validity === 'Valid'   ? 'detail-val--green'
+    : cert.validity === 'Expired' ? 'detail-val--red'
+    : 'detail-val--yellow'
 
   const tlsVerColor = (v) => {
-    if (!v) return 'detail-val--dim'
-    if (v === 'TLS1.3') return 'detail-val--green'
-    if (v === 'TLS1.2') return 'detail-val--blue'
+    if (!v)              return 'detail-val--dim'
+    if (v === 'TLS1.3')  return 'detail-val--green'
+    if (v === 'TLS1.2')  return 'detail-val--blue'
     return 'detail-val--red'
   }
 
   const channelColor = (c) => {
-    if (c === 'Plaintext') return 'detail-val--red'
-    if (c === 'STARTTLS')  return 'detail-val--yellow'
+    if (c === 'Plaintext')    return 'detail-val--red'
+    if (c === 'STARTTLS')     return 'detail-val--yellow'
     if (c === 'Implicit TLS') return 'detail-val--green'
     return ''
   }
+
+  const maxFeatureVal = Math.max(...Object.values(features).map(v => Math.abs(Number(v))), 1)
 
   return (
     <div className="session-detail-inner">
@@ -83,7 +112,10 @@ export default function SessionDetail({ session }) {
       <div className="session-detail-grid">
         {/* TLS Parameters */}
         <div className="detail-card">
-          <div className="detail-card-title">🔗 TLS Parameters</div>
+          <div className="detail-card-title">
+            <span className="detail-card-title-dot" />
+            TLS Parameters
+          </div>
           <DetailRow label="Channel"         value={s.channel_type}    valueClass={channelColor(s.channel_type)} />
           <DetailRow label="STARTTLS Status" value={s.starttls_status} valueClass={s.starttls_status === 'Stripped' ? 'detail-val--red' : ''} />
           <DetailRow label="TLS Version"     value={s.tls_version}     valueClass={tlsVerColor(s.tls_version)} />
@@ -96,7 +128,10 @@ export default function SessionDetail({ session }) {
 
         {/* Certificate */}
         <div className="detail-card">
-          <div className="detail-card-title">📜 X.509 Certificate</div>
+          <div className="detail-card-title">
+            <span className="detail-card-title-dot" style={{ background: 'var(--accent-violet)', boxShadow: '0 0 6px var(--accent-violet)' }} />
+            X.509 Certificate
+          </div>
           <DetailRow label="Validity"   value={cert.validity}            valueClass={certValColor} />
           <DetailRow label="Key Size"   value={cert.key_length_bits ? `${cert.key_length_bits} bits` : null}
                      valueClass={cert.key_length_bits >= 2048 ? 'detail-val--green' : 'detail-val--red'} />
@@ -105,30 +140,31 @@ export default function SessionDetail({ session }) {
           <DetailRow label="Issuer CN"  value={cert.issuer_cn} />
           <DetailRow label="Not After"  value={cert.not_after ? cert.not_after.slice(0, 10) : null}
                      valueClass={cert.validity === 'Expired' ? 'detail-val--red' : 'detail-val--green'} />
-          <DetailRow label="Self-Signed" value={cert.is_self_signed ? 'YES ⚠️' : 'No'}
+          <DetailRow label="Self-Signed" value={cert.is_self_signed ? 'YES ⚠' : 'No'}
                      valueClass={cert.is_self_signed ? 'detail-val--red' : 'detail-val--green'} />
-          <DetailRow label="Bytes Pre-TLS" value={s.bytes_pre_tls > 0 ? `${s.bytes_pre_tls} bytes` : '0'} valueClass={s.bytes_pre_tls > 0 ? 'detail-val--yellow' : 'detail-val--green'} />
+          <DetailRow label="Pre-TLS Bytes" value={s.bytes_pre_tls > 0 ? `${s.bytes_pre_tls} B` : '0'} valueClass={s.bytes_pre_tls > 0 ? 'detail-val--yellow' : 'detail-val--green'} />
         </div>
 
         {/* Fingerprints & ML */}
         <div className="detail-card">
-          <div className="detail-card-title">🧬 Fingerprints & ML</div>
+          <div className="detail-card-title">
+            <span className="detail-card-title-dot" style={{ background: 'var(--accent-green)', boxShadow: '0 0 6px var(--accent-green)' }} />
+            Fingerprints & ML
+          </div>
           <DetailRow label="JA4"    value={fp.ja4}  valueClass="detail-val--blue" />
           <DetailRow label="JA4S"   value={fp.ja4s} valueClass="detail-val--blue" />
           <DetailRow label="JA4X"   value={fp.ja4x} valueClass="detail-val--blue" />
-          <DetailRow label="ML Anomaly"      value={ml.is_anomalous ? '⚡ YES' : 'No'}     valueClass={ml.is_anomalous ? 'detail-val--red' : 'detail-val--green'} />
-          <DetailRow label="Anomaly Score"   value={ml.anomaly_score != null ? ml.anomaly_score.toFixed(4) : null} />
-          <DetailRow label="Buffer Inject"   value={s.buffer_injection_detected ? '⚠️ DETECTED' : 'No'} valueClass={s.buffer_injection_detected ? 'detail-val--red' : 'detail-val--green'} />
-          <DetailRow label="PQC State"       value={['Classical', 'PQC Offered', 'Hybrid PQC'][s.pqc_state] || 'Classical'} />
-          <DetailRow label="Packets"         value={s.packet_count} />
+          <DetailRow label="ML Anomaly"    value={ml.is_anomalous ? '⚡ YES' : 'No'}   valueClass={ml.is_anomalous ? 'detail-val--red' : 'detail-val--green'} />
+          <DetailRow label="Anomaly Score" value={ml.anomaly_score != null ? ml.anomaly_score.toFixed(4) : null} />
+          <DetailRow label="Buffer Inject" value={s.buffer_injection_detected ? '⚠ DETECTED' : 'No'} valueClass={s.buffer_injection_detected ? 'detail-val--red' : 'detail-val--green'} />
+          <DetailRow label="PQC State"     value={['Classical', 'PQC Offered', 'Hybrid PQC'][s.pqc_state] || 'Classical'} />
+          <DetailRow label="Packets"       value={s.packet_count} />
         </div>
       </div>
 
       {/* Score visualization */}
       <div style={{ marginBottom: 16 }}>
-        <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
-          📊 Component Score Breakdown
-        </div>
+        <SectionLabel>Component Score Breakdown</SectionLabel>
         <div className="chart-section">
           <ComponentScoreChart scores={cs} />
           <div style={{ flex: 1 }}>
@@ -139,24 +175,39 @@ export default function SessionDetail({ session }) {
 
       {/* Violations */}
       <div style={{ marginBottom: ml.is_anomalous ? 16 : 0 }}>
-        <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10 }}>
-          ⚠️ Violations ({violations.length})
-        </div>
+        <SectionLabel>
+          Violations&nbsp;
+          <span style={{ color: violations.length > 0 ? 'var(--risk-critical)' : 'var(--accent-green)', fontVariantNumeric: 'tabular-nums' }}>
+            ({violations.length})
+          </span>
+        </SectionLabel>
         {violations.length === 0 ? (
-          <div style={{ padding: '10px 14px', background: 'var(--risk-low-bg)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 6, fontSize: '0.78rem', color: 'var(--risk-low)' }}>
+          <div style={{ padding: '10px 14px', background: 'var(--risk-low-bg)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 6, fontSize: '0.76rem', color: 'var(--risk-low)' }}>
             ✅ No violations detected for this session.
           </div>
         ) : (
           <div className="violations-list">
             {violations.map((v, i) => (
               <div key={i} className={`violation-item violation-item--${v.severity}`}>
-                <ViolationBadge severity={v.severity} />
-                <div className="violation-body">
-                  <div className="violation-desc">
-                    <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem' }}>[{v.code}]</strong>
-                    {' '}{v.description}
+                <div className="violation-accent" />
+                <div className="violation-inner">
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                    <ViolationBadge severity={v.severity} />
+                    <div className="violation-body">
+                      <div className="violation-desc">
+                        <strong style={{ fontFamily: 'var(--font-mono)', fontSize: '0.68rem' }}>[{v.code}]</strong>
+                        {' '}{v.description}
+                      </div>
+                      {v.reference && (
+                        <div className="violation-ref">
+                          Ref:&nbsp;
+                          {v.reference.startsWith('http') ? (
+                            <a href={v.reference} target="_blank" rel="noopener noreferrer">{v.reference}</a>
+                          ) : v.reference}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  {v.reference && <div className="violation-ref">Ref: {v.reference}</div>}
                 </div>
               </div>
             ))}
@@ -167,22 +218,32 @@ export default function SessionDetail({ session }) {
       {/* ML Feature Drivers */}
       {ml.is_anomalous && Object.keys(features).length > 0 && (
         <div>
-          <div style={{ fontSize: '0.65rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: 10, marginTop: 16 }}>
-            🤖 ML Anomaly Feature Drivers
-          </div>
+          <SectionLabel>ML Anomaly Feature Drivers</SectionLabel>
           <table className="ml-table">
             <thead>
-              <tr><th>Feature</th><th>Z-Score Deviation</th></tr>
+              <tr><th>Feature</th><th>Z-Score</th><th>Deviation</th></tr>
             </thead>
             <tbody>
-              {Object.entries(features).map(([feat, val]) => (
-                <tr key={feat}>
-                  <td>{feat}</td>
-                  <td style={{ color: Math.abs(val) > 2 ? 'var(--risk-critical)' : Math.abs(val) > 1 ? 'var(--risk-high)' : 'var(--text-primary)' }}>
-                    {typeof val === 'number' ? val.toFixed(4) : val}
-                  </td>
-                </tr>
-              ))}
+              {Object.entries(features).map(([feat, val]) => {
+                const abs = Math.abs(Number(val))
+                const barColor = abs > 2 ? 'var(--risk-critical)' : abs > 1 ? 'var(--risk-high)' : 'var(--text-secondary)'
+                const pct = Math.min((abs / maxFeatureVal) * 100, 100)
+                return (
+                  <tr key={feat}>
+                    <td>{feat}</td>
+                    <td style={{ color: barColor }}>
+                      {typeof val === 'number' ? val.toFixed(4) : val}
+                    </td>
+                    <td>
+                      <div className="ml-bar-wrap">
+                        <div className="ml-bar-track">
+                          <div className="ml-bar-fill" style={{ width: `${pct}%`, background: barColor }} />
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })}
             </tbody>
           </table>
         </div>

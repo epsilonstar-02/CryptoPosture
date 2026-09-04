@@ -28,8 +28,8 @@ export default function PostureGauge({ score, tier }) {
     const ctx = canvas.getContext('2d')
     const size = canvas.width
     const cx = size / 2, cy = size / 2
-    const r  = size * 0.38
-    const lw = size * 0.055
+    const r  = size * 0.37
+    const lw = size * 0.052
 
     const startAngle = Math.PI * 0.75
     const fullArc    = Math.PI * 1.5
@@ -40,7 +40,7 @@ export default function PostureGauge({ score, tier }) {
       // Track
       ctx.beginPath()
       ctx.arc(cx, cy, r, startAngle, startAngle + fullArc)
-      ctx.strokeStyle = 'rgba(255,255,255,0.05)'
+      ctx.strokeStyle = 'rgba(255,255,255,0.04)'
       ctx.lineWidth = lw
       ctx.lineCap = 'round'
       ctx.stroke()
@@ -53,24 +53,23 @@ export default function PostureGauge({ score, tier }) {
       ctx.lineWidth = lw
       ctx.lineCap = 'round'
       ctx.shadowColor = color
-      ctx.shadowBlur = 18
+      ctx.shadowBlur = 20
       ctx.stroke()
       ctx.shadowBlur = 0
 
       // Score text
       ctx.fillStyle = color
-      ctx.font = `bold ${size * 0.22}px 'JetBrains Mono', monospace`
+      ctx.font = `bold ${size * 0.21}px 'JetBrains Mono', monospace`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(Math.round(val), cx, cy - size * 0.04)
 
       // /100
-      ctx.fillStyle = 'rgba(255,255,255,0.25)'
-      ctx.font = `${size * 0.08}px 'Inter', sans-serif`
-      ctx.fillText('/100', cx, cy + size * 0.14)
+      ctx.fillStyle = 'rgba(255,255,255,0.22)'
+      ctx.font = `${size * 0.075}px 'Inter', sans-serif`
+      ctx.fillText('/100', cx, cy + size * 0.13)
     }
 
-    // Animate
     if (animRef.current) cancelAnimationFrame(animRef.current)
     const target = safeScore
     const start  = curRef.current
@@ -92,10 +91,11 @@ export default function PostureGauge({ score, tier }) {
 
   return (
     <div className="panel panel--glow gauge-panel">
-      <canvas ref={canvasRef} width={220} height={220} style={{ maxWidth: '100%' }} />
+      <canvas ref={canvasRef} width={240} height={240} style={{ maxWidth: '100%' }} />
       <div className="gauge-label">Enterprise Posture Index</div>
       <div className="gauge-tier">
-        <span className={`risk-pill risk-pill--${tier}`} style={{ fontSize: '0.8rem', padding: '4px 14px' }}>
+        <span className={`risk-pill risk-pill--${tier}`} style={{ fontSize: '0.78rem', padding: '4px 14px' }}>
+          <span className={`risk-dot risk-dot--${tier}`} />
           {tier}
         </span>
       </div>
