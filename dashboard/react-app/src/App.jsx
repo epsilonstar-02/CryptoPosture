@@ -1,122 +1,124 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useEffect, useCallback } from 'react'
+import Sidebar          from './components/Sidebar.jsx'
+import LandingHero      from './components/LandingHero.jsx'
+import EvidenceBanner   from './components/EvidenceBanner.jsx'
+import PostureGauge     from './components/PostureGauge.jsx'
+import RiskMatrix       from './components/RiskMatrix.jsx'
+import SessionTable     from './components/SessionTable.jsx'
+import ExportPanel      from './components/ExportPanel.jsx'
+import LoadingOverlay   from './components/LoadingOverlay.jsx'
 
-function App() {
-  const [count, setCount] = useState(0)
+const API = ''
+
+export default function App() {
+  const [result,     setResult]     = useState(null)   // full API response
+  const [loading,    setLoading]    = useState(false)
+  const [apiStatus,  setApiStatus]  = useState('loading')
+  const [analysisMs, setAnalysisMs] = useState(null)
+
+  // API health check — must use a /api/* path so Vite proxies it to FastAPI.
+  // Fetching '/' only hits the Vite dev server (returns HTML, not JSON).
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const res = await fetch(`${API}/api/samples`, { signal: AbortSignal.timeout(4000) })
+        setApiStatus(res.ok ? 'online' : 'offline')
+      } catch {
+        setApiStatus('offline')
+      }
+    }
+    check()
+    const id = setInterval(check, 10000) // re-check every 10 s
+    return () => clearInterval(id)
+  }, [])
+
+  const handleResult = useCallback((data, elapsedSec) => {
+    setResult(data)
+    if (elapsedSec != null) setAnalysisMs(elapsedSec)
+  }, [])
+
+  const handleLoading = useCallback((isLoading) => {
+    setLoading(isLoading)
+    if (isLoading) {
+      setResult(null)
+      setAnalysisMs(null)
+      window.__analysisStart = performance.now()
+    } else {
+      const elapsed = window.__analysisStart
+        ? (performance.now() - window.__analysisStart) / 1000
+        : null
+      setAnalysisMs(elapsed)
+    }
+  }, [])
+
+  const ev   = result?.evidence || {}
+  const epi  = result?.enterprise_posture_index ?? 0
+  const tier = result?.overall_risk_tier ?? 'CRITICAL'
+  const rb   = result?.risk_breakdown || {}
+  const sessions = result?.sessions || []
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="layout">
+      <Sidebar
+        onResult={handleResult}
+        onLoading={handleLoading}
+        loading={loading}
+        apiStatus={apiStatus}
+      />
 
-      <div className="ticks"></div>
+      <main className="main-content">
+        <LoadingOverlay visible={loading} />
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {!result ? (
+          <LandingHero />
+        ) : (
+          <>
+            {/* Page header */}
+            <div className="header-bar fade-in">
+              <h1 className="page-title">Email Cryptographic Forensics</h1>
+            </div>
+            <p className="page-subtitle">
+              AI-Assisted Passive Network Forensics · NIST SP 800-52 · RFC 9325 · RFC 8314
+            </p>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+            {/* Evidence banner */}
+            <EvidenceBanner evidence={ev} analysisTime={analysisMs} />
+
+            {/* Posture + Risk */}
+            <div className="posture-section">
+              <PostureGauge score={epi} tier={tier} />
+              <RiskMatrix
+                breakdown={rb}
+                totalViolations={result?.total_violations}
+                sessionCount={result?.session_count}
+              />
+            </div>
+
+            {/* Session table */}
+            <div className="section-header">
+              <span className="section-title">Session Analysis</span>
+              <div className="section-line" />
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)', flexShrink: 0 }}>
+                {sessions.length} session{sessions.length !== 1 ? 's' : ''} · click row to expand
+              </span>
+            </div>
+            <SessionTable sessions={sessions} />
+
+            {/* Export */}
+            <div className="section-header">
+              <span className="section-title">Export Reports</span>
+              <div className="section-line" />
+            </div>
+            <ExportPanel data={result} />
+
+            {/* Footer */}
+            <div className="footer">
+              🔐 CryptoPosture · AI-Assisted Passive Network Forensic Framework for Enterprise Email Cryptographic Posture Assessment<br />
+              SIH-26 Demo · For authorized forensic use only · All analyses performed offline, no data transmitted externally.
+            </div>
+          </>
+        )}
+      </main>
+    </div>
   )
 }
-
-export default App
