@@ -73,6 +73,20 @@ class RiskTier(str, Enum):
     CRITICAL = "CRITICAL"
 
 
+class FindingStatus(str, Enum):
+    VIOLATION      = "VIOLATION"
+    PASS           = "PASS"
+    NOT_EVALUATED  = "NOT_EVALUATED"
+    INCONCLUSIVE   = "INCONCLUSIVE"
+
+
+class ConfidenceLevel(str, Enum):
+    CONFIRMED = "CONFIRMED"
+    HIGH      = "HIGH"
+    MEDIUM    = "MEDIUM"
+    LOW       = "LOW"
+
+
 # ---------------------------------------------------------------------------
 # Sub-models
 # ---------------------------------------------------------------------------
@@ -139,11 +153,45 @@ class ComponentScores:
 
 @dataclass
 class Violation:
-    """A single detected compliance violation."""
+    """A single detected compliance violation or policy finding."""
     code: str
     description: str
-    severity: str        # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW"
+    severity: str        # "CRITICAL" | "HIGH" | "MEDIUM" | "LOW" | "INFO"
     reference: str = ""  # RFC or NIST reference
+
+    # Forensic policy extensions (backward-compatible defaults)
+    rule_id: str = ""
+    title: str = ""
+    status: FindingStatus = FindingStatus.VIOLATION
+    confidence: ConfidenceLevel = ConfidenceLevel.CONFIRMED
+    evidence: dict = field(default_factory=dict)
+    remediation: str = ""
+    source_fields: list[str] = field(default_factory=list)
+    mandate_level: str = "MUST"    # "MUST" vs "SHOULD"
+    is_primary: bool = True
+    category: str = ""
+
+    def __post_init__(self):
+        if not self.rule_id:
+            self.rule_id = self.code
+
+    def to_dict(self) -> dict:
+        return {
+            "code":          self.code,
+            "rule_id":       self.rule_id or self.code,
+            "title":         self.title,
+            "description":   self.description,
+            "severity":      self.severity,
+            "reference":     self.reference,
+            "status":        self.status.value if isinstance(self.status, FindingStatus) else str(self.status),
+            "confidence":    self.confidence.value if isinstance(self.confidence, ConfidenceLevel) else str(self.confidence),
+            "evidence":      self.evidence,
+            "remediation":   self.remediation,
+            "source_fields": self.source_fields,
+            "mandate_level": self.mandate_level,
+            "is_primary":    self.is_primary,
+            "category":      self.category,
+        }
 
 
 @dataclass
@@ -186,6 +234,7 @@ class SessionAnalysis:
     fingerprints: JA4Fingerprints = field(default_factory=JA4Fingerprints)
 
     violations:        list[Violation]   = field(default_factory=list)
+    policy_findings:   list[Violation]   = field(default_factory=list)
     component_scores:  ComponentScores   = field(default_factory=ComponentScores)
     posture_score:     float             = 0.0
     risk_tier:         RiskTier          = RiskTier.CRITICAL
@@ -233,13 +282,22 @@ class SessionAnalysis:
                 "ja4x": self.fingerprints.ja4x,
             },
             "violations": [
-                {
+                v.to_dict() if hasattr(v, "to_dict") else {
                     "code":        v.code,
                     "description": v.description,
                     "severity":    v.severity,
                     "reference":   v.reference,
                 }
                 for v in self.violations
+            ],
+            "policy_findings": [
+                f.to_dict() if hasattr(f, "to_dict") else {
+                    "code":        f.code,
+                    "description": f.description,
+                    "severity":    f.severity,
+                    "reference":   f.reference,
+                }
+                for f in self.policy_findings
             ],
             "component_scores": {
                 "tls_version":        self.component_scores.tls_version,
