@@ -67,6 +67,7 @@ class TCPSegment:
     seq: int
     payload: bytes
     from_client: bool       # True = client→server, False = server→client
+    timestamp: float = 0.0
 
 
 @dataclass
@@ -94,6 +95,13 @@ class TCPStream:
     client_segments: List[TCPSegment] = field(default_factory=list)
     server_segments: List[TCPSegment] = field(default_factory=list)
 
+    @property
+    def all_segments(self) -> List[TCPSegment]:
+        """All segments across both directions sorted chronologically by arrival timestamp."""
+        segs = list(self.client_segments) + list(self.server_segments)
+        segs.sort(key=lambda s: s.timestamp)
+        return segs
+
 
 # ---------------------------------------------------------------------------
 # Directional TCP Stream Reassembler
@@ -110,7 +118,7 @@ class _TCPDirectionReassembler:
         self.ref_seq: Optional[int] = None
         self.syn_seen: bool = False
         self.expected_start_seq: Optional[int] = None
-        self.raw_segments: List[Tuple[int, bytes, int]] = []  # (seq, payload, arrival_idx)
+        self.raw_segments: List[Tuple[int, bytes, int, float]] = []  # (seq, payload, arrival_idx, timestamp)
         self.arrival_counter: int = 0
 
     def record_syn(self, syn_seq: int):
@@ -121,7 +129,7 @@ class _TCPDirectionReassembler:
         if self.ref_seq is None:
             self.ref_seq = self.expected_start_seq
 
-    def add_segment(self, seq: int, payload: bytes, is_syn: bool = False):
+    def add_segment(self, seq: int, payload: bytes, is_syn: bool = False, timestamp: float = 0.0):
         """Buffer a payload segment for reassembly."""
         if not payload:
             return
@@ -130,7 +138,7 @@ class _TCPDirectionReassembler:
         if self.ref_seq is None:
             self.ref_seq = seq
 
-        self.raw_segments.append((seq, payload, self.arrival_counter))
+        self.raw_segments.append((seq, payload, self.arrival_counter, timestamp))
         self.arrival_counter += 1
 
     def reassemble(self) -> Tuple[bytearray, List[TCPSegment]]:
@@ -144,11 +152,11 @@ class _TCPDirectionReassembler:
         ref_seq = self.ref_seq if self.ref_seq is not None else self.raw_segments[0][0]
 
         # Convert sequence numbers to linear signed offsets relative to ref_seq
-        items: List[Tuple[int, int, int, bytes, int]] = []
-        for seq, payload, arrival_idx in self.raw_segments:
+        items: List[Tuple[int, int, int, bytes, int, float]] = []
+        for seq, payload, arrival_idx, timestamp in self.raw_segments:
             start_offset = seq_diff(seq, ref_seq)
             end_offset = start_offset + len(payload)
-            items.append((start_offset, end_offset, seq, payload, arrival_idx))
+            items.append((start_offset, end_offset, seq, payload, arrival_idx, timestamp))
 
         # Sort segments:
         # 1. start_offset ascending (earliest sequence number first)
@@ -160,7 +168,7 @@ class _TCPDirectionReassembler:
         if self.syn_seen and self.expected_start_seq is not None:
             syn_offset = seq_diff(self.expected_start_seq, ref_seq)
             filtered = []
-            for start_offset, end_offset, seq, payload, arrival_idx in items:
+            for start_offset, end_offset, seq, payload, arrival_idx, timestamp in items:
                 if end_offset <= syn_offset:
                     continue
                 if start_offset < syn_offset:
@@ -168,15 +176,15 @@ class _TCPDirectionReassembler:
                     payload = payload[trim:]
                     seq = (seq + trim) & 0xFFFFFFFF
                     start_offset = syn_offset
-                filtered.append((start_offset, end_offset, seq, payload, arrival_idx))
+                filtered.append((start_offset, end_offset, seq, payload, arrival_idx, timestamp))
             items = filtered
 
         result_segments: List[TCPSegment] = []
         current_offset: Optional[int] = None
 
-        for start_offset, end_offset, seq, payload, _ in items:
+        for start_offset, end_offset, seq, payload, _, timestamp in items:
             if current_offset is None:
-                result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client))
+                result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client, timestamp=timestamp))
                 current_offset = end_offset
                 continue
 
@@ -189,12 +197,12 @@ class _TCPDirectionReassembler:
                 trim_len = current_offset - start_offset
                 trimmed_payload = payload[trim_len:]
                 trimmed_seq = (seq + trim_len) & 0xFFFFFFFF
-                result_segments.append(TCPSegment(seq=trimmed_seq, payload=trimmed_payload, from_client=self.from_client))
+                result_segments.append(TCPSegment(seq=trimmed_seq, payload=trimmed_payload, from_client=self.from_client, timestamp=timestamp))
                 current_offset = end_offset
                 continue
 
             # Case 3: Contiguous (start_offset == current_offset) or Gap (start_offset > current_offset)
-            result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client))
+            result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client, timestamp=timestamp))
             current_offset = end_offset
 
         data = bytearray(b"".join(seg.payload for seg in result_segments))
@@ -297,11 +305,13 @@ class StreamReassembler:
 
             target_reassembler = c_reassembler if from_client else s_reassembler
 
+            pkt_time = float(pkt.time) if hasattr(pkt, "time") and pkt.time is not None else 0.0
+
             if is_syn:
                 target_reassembler.record_syn(tcp.seq)
 
             if payload:
-                target_reassembler.add_segment(tcp.seq, payload, is_syn=is_syn)
+                target_reassembler.add_segment(tcp.seq, payload, is_syn=is_syn, timestamp=pkt_time)
 
         # Reassemble and finalize each flow's bidirectional streams
         for flow_key, stream in self._flows.items():

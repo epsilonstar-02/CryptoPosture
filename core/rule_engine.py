@@ -67,6 +67,7 @@ class V:
     STARTTLS_FAILED       = ("STARTTLS-002", "STARTTLS negotiation failed — session fell back to plaintext", "CRITICAL", "RFC 3207, RFC 8314")
     STARTTLS_UNADVERTISED = ("STARTTLS-003", "Server advertised STARTTLS but client never upgraded", "MEDIUM",   "RFC 3207")
     BUFFER_INJECTION      = ("STARTTLS-004", "STARTTLS buffer injection attack detected — cleartext commands pipelined across TLS boundary (Poddebniak et al., USENIX '21)", "CRITICAL", "Poddebniak et al. USENIX Security 2021")
+    STARTTLS_POSSIBLE_STRIP = ("STARTTLS-005", "Possible STARTTLS stripping detected on untrusted cleartext channel", "HIGH", "Durumeric et al. IMC 2015")
 
     # Protocol context
     CLEARTEXT_SUBMISSION  = ("PROTO-001", "Email submission on port 587/25 without TLS — cleartext submission (RFC 8314 §3 obsoletes this)", "CRITICAL", "RFC 8314 §3")
@@ -177,6 +178,8 @@ def _check_starttls(session: SessionAnalysis) -> List[Violation]:
 
     if session.starttls_status == StarttlsStatus.STRIPPED:
         violations.append(_make(V.STARTTLS_STRIPPED))
+    elif session.starttls_status == StarttlsStatus.POSSIBLE_STRIPPING:
+        violations.append(_make(V.STARTTLS_POSSIBLE_STRIP))
     elif session.starttls_status == StarttlsStatus.FAILED:
         violations.append(_make(V.STARTTLS_FAILED))
     elif session.starttls_status == StarttlsStatus.ADVERTISED:

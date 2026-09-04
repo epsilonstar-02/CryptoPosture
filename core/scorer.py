@@ -164,11 +164,15 @@ def _score_starttls_transition(session: SessionAnalysis) -> float:
             return 80.0   # Acceptable but not ideal
         if status == StarttlsStatus.FAILED:
             return 10.0
-        if status == StarttlsStatus.STRIPPED:
+        if status in (StarttlsStatus.STRIPPED, StarttlsStatus.POSSIBLE_STRIPPING):
             return 0.0
+        if status in (StarttlsStatus.INCONCLUSIVE, StarttlsStatus.UNKNOWN):
+            return 40.0
     if channel == ChannelType.PLAINTEXT:
         if status == StarttlsStatus.ADVERTISED:
             return 20.0   # Server offered but client didn't take it
+        if status in (StarttlsStatus.INCONCLUSIVE, StarttlsStatus.UNKNOWN):
+            return 25.0
         return 0.0
 
     return 50.0
@@ -230,7 +234,7 @@ def _compute_penalties(session: SessionAnalysis) -> float:
     if session.buffer_injection_detected:
         penalties += P_STARTTLS_INJECT
 
-    if session.starttls_status == StarttlsStatus.STRIPPED:
+    if session.starttls_status in (StarttlsStatus.STRIPPED, StarttlsStatus.POSSIBLE_STRIPPING):
         penalties += P_STARTTLS_STRIP
 
     if "RC4" in cipher or "_NULL_" in cipher or "EXPORT" in cipher:

@@ -59,12 +59,15 @@ _CHANNEL_INT = {
 }
 
 _STARTTLS_INT = {
-    StarttlsStatus.STRIPPED:   0,
-    StarttlsStatus.FAILED:     1,
-    StarttlsStatus.NONE:       2,
-    StarttlsStatus.ADVERTISED: 3,
-    StarttlsStatus.REQUESTED:  4,
-    StarttlsStatus.NEGOTIATED: 5,
+    StarttlsStatus.STRIPPED:           0,
+    StarttlsStatus.POSSIBLE_STRIPPING:  0,
+    StarttlsStatus.FAILED:             1,
+    StarttlsStatus.NONE:               2,
+    StarttlsStatus.INCONCLUSIVE:       2,
+    StarttlsStatus.UNKNOWN:            2,
+    StarttlsStatus.ADVERTISED:         3,
+    StarttlsStatus.REQUESTED:          4,
+    StarttlsStatus.NEGOTIATED:         5,
 }
 
 

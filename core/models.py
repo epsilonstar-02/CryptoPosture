@@ -30,12 +30,15 @@ class ChannelType(str, Enum):
 
 
 class StarttlsStatus(str, Enum):
-    NONE        = "None"
-    ADVERTISED  = "Advertised"
-    REQUESTED   = "Requested"
-    NEGOTIATED  = "Negotiated"
-    FAILED      = "Failed"
-    STRIPPED    = "Stripped"
+    NONE               = "None"
+    ADVERTISED         = "Advertised"
+    REQUESTED          = "Requested"
+    NEGOTIATED         = "Negotiated"
+    FAILED             = "Failed"
+    STRIPPED           = "Stripped"
+    POSSIBLE_STRIPPING = "Possible Stripping"
+    INCONCLUSIVE       = "Inconclusive"
+    UNKNOWN            = "Unknown"
 
 
 class TLSVersion(str, Enum):
