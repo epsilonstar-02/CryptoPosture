@@ -113,6 +113,10 @@ def _analyze_stream(stream: TCPStream) -> SessionAnalysis:
 
     if hs.cert:
         session.cert = hs.cert
+    if hs.cert_chain:
+        session.cert_chain = hs.cert_chain
+    session.tls_diagnostics = hs.diagnostics
+    session.handshake_status = hs.handshake_status
 
     # Correct channel type for implicit TLS if TLS records found but no STARTTLS
     if stream.is_implicit_tls and hs.tls_version:

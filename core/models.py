@@ -89,6 +89,42 @@ class CertHealth:
     not_after: Optional[str] = None
     is_self_signed: bool = False
 
+    # Forensic extensions
+    san_list: list[str] = field(default_factory=list)
+    key_type: Optional[str] = None
+    curve_name: Optional[str] = None
+    serial_number: Optional[str] = None
+    fingerprint_sha256: Optional[str] = None
+    subject_dn: Optional[str] = None
+    issuer_dn: Optional[str] = None
+    is_ca: bool = False
+    signature_valid: Optional[bool] = None
+    san_matches_sni: Optional[bool] = None
+    diagnostics: list[str] = field(default_factory=list)
+
+    def to_dict(self) -> dict:
+        return {
+            "validity":            self.validity.value,
+            "key_length_bits":     self.key_length_bits,
+            "signature_algorithm": self.signature_algorithm,
+            "subject_cn":          self.subject_cn,
+            "issuer_cn":           self.issuer_cn,
+            "not_before":          self.not_before,
+            "not_after":           self.not_after,
+            "is_self_signed":      self.is_self_signed,
+            "san_list":            self.san_list,
+            "key_type":            self.key_type,
+            "curve_name":          self.curve_name,
+            "serial_number":       self.serial_number,
+            "fingerprint_sha256":  self.fingerprint_sha256,
+            "subject_dn":          self.subject_dn,
+            "issuer_dn":           self.issuer_dn,
+            "is_ca":               self.is_ca,
+            "signature_valid":     self.signature_valid,
+            "san_matches_sni":     self.san_matches_sni,
+            "diagnostics":         self.diagnostics,
+        }
+
 
 @dataclass
 class ComponentScores:
@@ -144,6 +180,9 @@ class SessionAnalysis:
     sni:          Optional[str]         = None
 
     cert: CertHealth = field(default_factory=CertHealth)
+    cert_chain: list[CertHealth] = field(default_factory=list)
+    tls_diagnostics: list[str] = field(default_factory=list)
+    handshake_status: str = "UNKNOWN"
     fingerprints: JA4Fingerprints = field(default_factory=JA4Fingerprints)
 
     violations:        list[Violation]   = field(default_factory=list)
@@ -184,16 +223,10 @@ class SessionAnalysis:
             "cipher_suite":   self.cipher_suite,
             "key_exchange":   self.key_exchange.value if self.key_exchange else None,
             "sni":            self.sni,
-            "cert": {
-                "validity":            self.cert.validity.value,
-                "key_length_bits":     self.cert.key_length_bits,
-                "signature_algorithm": self.cert.signature_algorithm,
-                "subject_cn":          self.cert.subject_cn,
-                "issuer_cn":           self.cert.issuer_cn,
-                "not_before":          self.cert.not_before,
-                "not_after":           self.cert.not_after,
-                "is_self_signed":      self.cert.is_self_signed,
-            },
+            "handshake_status": self.handshake_status,
+            "tls_diagnostics": self.tls_diagnostics,
+            "cert":           self.cert.to_dict(),
+            "cert_chain":      [c.to_dict() for c in self.cert_chain],
             "fingerprints": {
                 "ja4":  self.fingerprints.ja4,
                 "ja4s": self.fingerprints.ja4s,
