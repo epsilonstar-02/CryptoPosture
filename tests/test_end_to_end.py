@@ -37,9 +37,14 @@ class TestEndToEnd(unittest.TestCase):
     # ---- Scenario 1: Clean Implicit TLS (LOW risk, high score) ----
     def test_01_clean_implicit_tls_high_score(self):
         summary = self._analyze("clean_implicit_tls")
-        self.assertGreater(summary.enterprise_posture_index, 60,
-            "Clean implicit TLS should have high posture score")
+        self.assertGreaterEqual(summary.enterprise_posture_index, 90.0,
+            "Clean implicit TLS should have high posture score >= 90")
         self.assertEqual(len(summary.sessions), 1)
+        sess = summary.sessions[0]
+        self.assertFalse(sess.cert.is_self_signed, "Clean cert should not be self-signed")
+        violation_codes = [v.code for v in sess.violations]
+        self.assertNotIn("CERT-003", violation_codes, "Clean scenario must not trigger CERT-003")
+        self.assertEqual(len(sess.violations), 0, "Clean scenario should have 0 violations")
 
     def test_01_clean_implicit_tls_has_sha256(self):
         summary = self._analyze("clean_implicit_tls")
@@ -53,14 +58,30 @@ class TestEndToEnd(unittest.TestCase):
         # Should be lower than clean scenario
         self.assertLessEqual(summary.enterprise_posture_index, 75,
             "Weak cipher STARTTLS should have degraded posture score")
+        sess = summary.sessions[0]
+        violation_codes = [v.code for v in sess.violations]
+        self.assertIn("CERT-006", violation_codes, "Weak cipher scenario must flag SHA-1 signature (CERT-006)")
 
-    # ---- Scenario 3: Stripped STARTTLS (CRITICAL, very low score) ----
+    # ---- Scenario 3: Stripped STARTTLS (CRITICAL, strictly 0.0 score) ----
     def test_03_stripped_starttls_critical(self):
         summary = self._analyze("stripped_starttls_plaintext")
-        # Should detect violations
+        self.assertEqual(summary.enterprise_posture_index, 0.0,
+            "Stripped STARTTLS must evaluate strictly to 0.0 enterprise posture index")
+        self.assertEqual(summary.overall_risk_tier, RiskTier.CRITICAL,
+            "Stripped STARTTLS must force CRITICAL risk tier")
         total_violations = sum(len(s.violations) for s in summary.sessions)
-        self.assertGreaterEqual(total_violations, 0,
-            "Stripped STARTTLS should be analyzed")
+        self.assertGreaterEqual(total_violations, 1,
+            "Stripped STARTTLS must flag violations")
+
+    def test_dual_breakdowns_in_summary_dict(self):
+        summary = self._analyze("weak_cipher_starttls")
+        d = summary.to_dict()
+        self.assertIn("session_tier_breakdown", d)
+        self.assertIn("violation_severity_breakdown", d)
+        self.assertIn("HIGH", d["session_tier_breakdown"])
+        self.assertIn("HIGH", d["violation_severity_breakdown"])
+        self.assertEqual(d["session_tier_breakdown"]["HIGH"], 1)
+        self.assertGreaterEqual(d["violation_severity_breakdown"]["HIGH"], 1)
 
     # ---- Scenario 4: Expired Certificate ----
     def test_04_expired_cert_detected(self):

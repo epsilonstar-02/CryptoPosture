@@ -1,0 +1,212 @@
+{
+  "manifest_version": "2.0.0",
+  "generator_version": "2.0.0",
+  "generated_at": "2026-09-05T16:38:05.204180+00:00",
+  "framework": "Email Cryptographic Forensics Framework",
+  "positioning": "We use synthetic captures as controlled ground-truth fixtures for deterministic testing, and we separately validate the forensic pipeline against real mail-server captures.",
+  "total_scenarios": 5,
+  "tiers": {
+    "tier1_synthetic": {
+      "name": "Deterministic Synthetic Fixtures",
+      "description": "Controlled, mathematically exact unit & integration test fixtures.",
+      "scenarios": [
+        "clean_implicit_tls",
+        "weak_cipher_starttls",
+        "stripped_starttls_plaintext",
+        "expired_cert_implicit_tls",
+        "buffer_injection_attack"
+      ]
+    },
+    "tier2_real_lab": {
+      "name": "Real Mail-Server Lab Captures",
+      "description": "Authentic Postfix, Dovecot, and Sendmail sessions with real TLS handshakes.",
+      "scenarios": []
+    },
+    "tier3_adversarial": {
+      "name": "Adversarial & Edge-Case Captures",
+      "description": "Stress fixtures testing fragmentation, retransmission, out-of-order, and corrupted records.",
+      "scenarios": []
+    }
+  },
+  "scenarios": {
+    "clean_implicit_tls": {
+      "scenario_id": "clean_implicit_tls",
+      "filename": "clean_implicit_tls.pcap",
+      "tier": "tier1_synthetic",
+      "file_size_bytes": 2435,
+      "sha256_hash": "da02264a99e13679d47056aae27b1f5b1f82c6b38a32d0a02f84c42bbb05fb86",
+      "benchmark_spec": {
+        "scenario_id": "clean_implicit_tls",
+        "name": "Clean Implicit TLS (IMAPS TLS 1.3)",
+        "tier": "tier1_synthetic",
+        "pcap_filename": "clean_implicit_tls.pcap",
+        "description": "IMAPS port 993, TLS 1.3, AES-256-GCM, valid CA-signed cert, matching SNI",
+        "category": "Baseline / High Security",
+        "expected_channel_type": "Implicit TLS",
+        "expected_starttls_status": "None",
+        "expected_tls_version": "TLS1.3",
+        "expected_cipher_suite": "TLS_AES_256_GCM_SHA384",
+        "expected_cert_validity": "Valid",
+        "expected_cert_self_signed": false,
+        "expected_cert_weak_key": false,
+        "expected_cert_weak_sig": false,
+        "expected_violations": [],
+        "unexpected_violations": [
+          "CERT-003",
+          "DEPR-TLS-002",
+          "STARTTLS-001"
+        ],
+        "min_score": 90.0,
+        "max_score": 100.0,
+        "expected_risk_tier": "LOW",
+        "expected_confidence": "HIGH",
+        "expected_buffer_injection": false,
+        "notes": "Genuinely clean session with zero rule violations."
+      }
+    },
+    "weak_cipher_starttls": {
+      "scenario_id": "weak_cipher_starttls",
+      "filename": "weak_cipher_starttls.pcap",
+      "tier": "tier1_synthetic",
+      "file_size_bytes": 2673,
+      "sha256_hash": "8ab5d37ecc395d39a9a61d461b1c5de218f954c084a52b3ae0ca2144ef17a0b4",
+      "benchmark_spec": {
+        "scenario_id": "weak_cipher_starttls",
+        "name": "Weak Cipher STARTTLS (TLS 1.0, 3DES, SHA-1 cert)",
+        "tier": "tier1_synthetic",
+        "pcap_filename": "weak_cipher_starttls.pcap",
+        "description": "SMTP STARTTLS port 587, negotiated TLS 1.0, 3DES cipher, SHA-1 signed cert",
+        "category": "Deprecated Cryptography",
+        "expected_channel_type": "STARTTLS",
+        "expected_starttls_status": "Negotiated",
+        "expected_tls_version": "TLS1.0",
+        "expected_cipher_suite": "TLS_RSA_WITH_3DES_EDE_CBC_SHA",
+        "expected_cert_validity": "Valid",
+        "expected_cert_self_signed": false,
+        "expected_cert_weak_key": false,
+        "expected_cert_weak_sig": true,
+        "expected_violations": [
+          "DEPR-TLS-002",
+          "WEAK-CIPH-002",
+          "FS-001",
+          "CERT-006",
+          "CERT-008"
+        ],
+        "unexpected_violations": [
+          "CERT-003"
+        ],
+        "min_score": 30.0,
+        "max_score": 55.0,
+        "expected_risk_tier": "HIGH",
+        "expected_confidence": "CONFIRMED",
+        "expected_buffer_injection": false,
+        "notes": "Explicitly exercises TLS 1.0 deprecation, 3DES CBC, and SHA-1 cert signature."
+      }
+    },
+    "stripped_starttls_plaintext": {
+      "scenario_id": "stripped_starttls_plaintext",
+      "filename": "stripped_starttls_plaintext.pcap",
+      "tier": "tier1_synthetic",
+      "file_size_bytes": 794,
+      "sha256_hash": "16180113be7163aa87f49a5a1c911b8765d3a4406ef8a0e7a574ad39746c7a68",
+      "benchmark_spec": {
+        "scenario_id": "stripped_starttls_plaintext",
+        "name": "Stripped STARTTLS / Plaintext Fallback (MITM)",
+        "tier": "tier1_synthetic",
+        "pcap_filename": "stripped_starttls_plaintext.pcap",
+        "description": "SMTP port 25 with STARTTLS capability stripped by active MITM, cleartext AUTH",
+        "category": "Active Protocol Downgrade Attack",
+        "expected_channel_type": "Plaintext",
+        "expected_starttls_status": "Stripped",
+        "expected_tls_version": null,
+        "expected_cipher_suite": null,
+        "expected_cert_validity": null,
+        "expected_cert_self_signed": null,
+        "expected_cert_weak_key": null,
+        "expected_cert_weak_sig": null,
+        "expected_violations": [
+          "STARTTLS-001",
+          "DEPR-TLS-004",
+          "PROTO-001"
+        ],
+        "unexpected_violations": [],
+        "min_score": 0.0,
+        "max_score": 0.0,
+        "expected_risk_tier": "CRITICAL",
+        "expected_confidence": "CONFIRMED",
+        "expected_buffer_injection": false,
+        "notes": "Plaintext credentials captured in cleartext submission."
+      }
+    },
+    "expired_cert_implicit_tls": {
+      "scenario_id": "expired_cert_implicit_tls",
+      "filename": "expired_cert_implicit_tls.pcap",
+      "tier": "tier1_synthetic",
+      "file_size_bytes": 2279,
+      "sha256_hash": "6e3121c9c50d03188962aa312afc9a85439393d6008f20f18f552f4e081a1bf3",
+      "benchmark_spec": {
+        "scenario_id": "expired_cert_implicit_tls",
+        "name": "Expired Certificate (IMAPS TLS 1.2)",
+        "tier": "tier1_synthetic",
+        "pcap_filename": "expired_cert_implicit_tls.pcap",
+        "description": "IMAPS port 993, TLS 1.2, expired CA-issued certificate",
+        "category": "Certificate Lifecycle Failure",
+        "expected_channel_type": "Implicit TLS",
+        "expected_starttls_status": "None",
+        "expected_tls_version": "TLS1.2",
+        "expected_cipher_suite": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "expected_cert_validity": "Expired",
+        "expected_cert_self_signed": false,
+        "expected_cert_weak_key": false,
+        "expected_cert_weak_sig": false,
+        "expected_violations": [
+          "CERT-001"
+        ],
+        "unexpected_violations": [
+          "CERT-003"
+        ],
+        "min_score": 40.0,
+        "max_score": 75.0,
+        "expected_risk_tier": "CRITICAL",
+        "expected_confidence": "CONFIRMED",
+        "expected_buffer_injection": false,
+        "notes": "Certificate not_after is strictly in the past."
+      }
+    },
+    "buffer_injection_attack": {
+      "scenario_id": "buffer_injection_attack",
+      "filename": "buffer_injection_attack.pcap",
+      "tier": "tier1_synthetic",
+      "file_size_bytes": 2698,
+      "sha256_hash": "a69c6710a861f16b925b27fec5260124f40f0533009777c20b9e8a71d7f72f03",
+      "benchmark_spec": {
+        "scenario_id": "buffer_injection_attack",
+        "name": "Buffer Injection Attack (Poddebniak et al. USENIX 2021)",
+        "tier": "tier1_synthetic",
+        "pcap_filename": "buffer_injection_attack.pcap",
+        "description": "SMTP STARTTLS port 25 with pipelined commands injected into STARTTLS TCP segment",
+        "category": "Implementation Vulnerability Attack",
+        "expected_channel_type": "STARTTLS",
+        "expected_starttls_status": "Negotiated",
+        "expected_tls_version": "TLS1.2",
+        "expected_cipher_suite": "TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256",
+        "expected_cert_validity": "Valid",
+        "expected_cert_self_signed": false,
+        "expected_cert_weak_key": false,
+        "expected_cert_weak_sig": false,
+        "expected_violations": [
+          "STARTTLS-004"
+        ],
+        "unexpected_violations": [
+          "CERT-003"
+        ],
+        "min_score": 10.0,
+        "max_score": 35.0,
+        "expected_risk_tier": "CRITICAL",
+        "expected_confidence": "CONFIRMED",
+        "expected_buffer_injection": true,
+        "notes": "Pipelined cleartext commands in STARTTLS TCP payload before TLS handshake."
+      }
+    }
+  }
+}
