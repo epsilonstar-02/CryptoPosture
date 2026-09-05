@@ -5,6 +5,11 @@ Implements Pipeline Stage 2 from the project synopsis.
 
 Reconstructs ordered bidirectional application-layer payloads from raw Scapy
 packets using TCP 5-tuple tracking and sequence number ordering.
+
+🔴 Fix 1 (TCP Gap Handling): When a gap exists in the TCP sequence space,
+the reassembler now explicitly records the missing range instead of silently
+bridging it. Downstream parsers must treat gapped streams as PARTIAL and
+must not make high-confidence conclusions across a gap.
 """
 
 from __future__ import annotations
@@ -71,6 +76,27 @@ class TCPSegment:
 
 
 @dataclass
+class SequenceGap:
+    """
+    A forensically significant gap in the TCP sequence space where bytes were
+    not captured. Downstream parsers MUST NOT make high-confidence inferences
+    across this boundary.
+    """
+    start_offset: int       # Linear offset (relative to stream ref_seq) of first missing byte
+    end_offset: int         # Linear offset of first captured byte after the gap
+    missing_bytes: int      # end_offset - start_offset
+    direction: str          # "client" or "server"
+
+    def to_dict(self) -> dict:
+        return {
+            "start_offset": self.start_offset,
+            "end_offset": self.end_offset,
+            "missing_bytes": self.missing_bytes,
+            "direction": self.direction,
+        }
+
+
+@dataclass
 class TCPStream:
     """
     Reconstructed bidirectional TCP application stream for a 5-tuple flow.
@@ -95,6 +121,32 @@ class TCPStream:
     client_segments: List[TCPSegment] = field(default_factory=list)
     server_segments: List[TCPSegment] = field(default_factory=list)
 
+    # 🔴 Fix 1: Explicit gap tracking — never silently bridge missing data
+    client_gaps: List[SequenceGap] = field(default_factory=list)
+    server_gaps: List[SequenceGap] = field(default_factory=list)
+
+    @property
+    def has_gaps(self) -> bool:
+        """True if any direction has missing TCP sequence ranges."""
+        return bool(self.client_gaps or self.server_gaps)
+
+    @property
+    def sequence_gaps(self) -> List[SequenceGap]:
+        """All gaps across both directions."""
+        return list(self.client_gaps) + list(self.server_gaps)
+
+    @property
+    def gap_summary(self) -> dict:
+        """Metadata dict for StageResult.metadata inclusion."""
+        return {
+            "has_gaps": self.has_gaps,
+            "gap_count": len(self.client_gaps) + len(self.server_gaps),
+            "client_gaps": len(self.client_gaps),
+            "server_gaps": len(self.server_gaps),
+            "total_missing_bytes": sum(g.missing_bytes for g in self.sequence_gaps),
+            "gaps": [g.to_dict() for g in self.sequence_gaps],
+        }
+
     @property
     def all_segments(self) -> List[TCPSegment]:
         """All segments across both directions sorted chronologically by arrival timestamp."""
@@ -111,6 +163,9 @@ class _TCPDirectionReassembler:
     """
     Reassembles a single unidirectional TCP stream from unordered, overlapping,
     or duplicate TCP segments.
+
+    🔴 Fix 1: Gaps in sequence space are now DETECTED and RETURNED rather than
+    silently skipped. The caller (StreamReassembler) stores them on TCPStream.
     """
 
     def __init__(self, from_client: bool):
@@ -141,15 +196,22 @@ class _TCPDirectionReassembler:
         self.raw_segments.append((seq, payload, self.arrival_counter, timestamp))
         self.arrival_counter += 1
 
-    def reassemble(self) -> Tuple[bytearray, List[TCPSegment]]:
+    def reassemble(self) -> Tuple[bytearray, List[TCPSegment], List[SequenceGap]]:
         """
         Reorder, deduplicate, and merge segments into a contiguous byte stream
         and an ordered list of distinct non-overlapping TCP segments.
+
+        Returns:
+            (data, result_segments, gaps)
+            - data: reassembled bytes (with gaps left as logical boundaries)
+            - result_segments: ordered non-overlapping segments
+            - gaps: list of SequenceGap where bytes were never captured
         """
         if not self.raw_segments:
-            return bytearray(), []
+            return bytearray(), [], []
 
         ref_seq = self.ref_seq if self.ref_seq is not None else self.raw_segments[0][0]
+        direction = "client" if self.from_client else "server"
 
         # Convert sequence numbers to linear signed offsets relative to ref_seq
         items: List[Tuple[int, int, int, bytes, int, float]] = []
@@ -180,6 +242,7 @@ class _TCPDirectionReassembler:
             items = filtered
 
         result_segments: List[TCPSegment] = []
+        gaps: List[SequenceGap] = []
         current_offset: Optional[int] = None
 
         for start_offset, end_offset, seq, payload, _, timestamp in items:
@@ -201,12 +264,28 @@ class _TCPDirectionReassembler:
                 current_offset = end_offset
                 continue
 
-            # Case 3: Contiguous (start_offset == current_offset) or Gap (start_offset > current_offset)
+            # Case 3: Contiguous — no gap, append directly
+            if start_offset == current_offset:
+                result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client, timestamp=timestamp))
+                current_offset = end_offset
+                continue
+
+            # 🔴 Fix 1 — Case 4: GAP DETECTED (start_offset > current_offset)
+            # The bytes between current_offset and start_offset were NEVER captured.
+            # Record the gap explicitly and DO NOT manufacture a contiguous stream.
+            missing = start_offset - current_offset
+            gaps.append(SequenceGap(
+                start_offset=current_offset,
+                end_offset=start_offset,
+                missing_bytes=missing,
+                direction=direction,
+            ))
+            # Append the post-gap segment — but the gap is now documented
             result_segments.append(TCPSegment(seq=seq, payload=payload, from_client=self.from_client, timestamp=timestamp))
             current_offset = end_offset
 
         data = bytearray(b"".join(seg.payload for seg in result_segments))
-        return data, result_segments
+        return data, result_segments, gaps
 
 
 # ---------------------------------------------------------------------------
@@ -315,14 +394,18 @@ class StreamReassembler:
 
         # Reassemble and finalize each flow's bidirectional streams
         for flow_key, stream in self._flows.items():
-            c_data, c_segs = self._client_reassemblers[flow_key].reassemble()
-            s_data, s_segs = self._server_reassemblers[flow_key].reassemble()
+            c_data, c_segs, c_gaps = self._client_reassemblers[flow_key].reassemble()
+            s_data, s_segs, s_gaps = self._server_reassemblers[flow_key].reassemble()
 
             stream.client_data = c_data
             stream.server_data = s_data
             stream.client_segments = c_segs
             stream.server_segments = s_segs
             stream.byte_count = len(c_data) + len(s_data)
+
+            # 🔴 Fix 1: Attach gap records to the stream
+            stream.client_gaps = c_gaps
+            stream.server_gaps = s_gaps
 
             self._client_buf[flow_key] = {seg.seq: seg.payload for seg in c_segs}
             self._server_buf[flow_key] = {seg.seq: seg.payload for seg in s_segs}
