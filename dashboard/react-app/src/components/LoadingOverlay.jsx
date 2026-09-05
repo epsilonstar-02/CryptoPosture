@@ -1,14 +1,16 @@
 import { useState, useEffect, useRef } from 'react'
 
 const STEPS = [
-  'Parsing PCAP frames',
-  'Reconstructing TCP sessions',
-  'Extracting TLS handshakes',
-  'Scoring cryptographic posture',
+  'Verifying capture integrity & SHA-256 chain of custody',
+  'Reconstructing TCP streams & STARTTLS state transitions',
+  'Parsing TLS records, ciphers & X.509 certificate chains',
+  'Evaluating deterministic RFC & NIST SP 800-52r2 policies',
+  'Executing standards-informed scoring & critical score caps',
+  'Detecting unsupervised outliers (Liu et al. Isolation Forest)',
 ]
 
-const STEP_DURATION = 450    // ms spent on each step (~1.8s total for 4 steps)
-const COMPLETE_HOLD  = 650    // ms to show "ANALYSIS COMPLETE" before navigating
+const STEP_DURATION = 320    // ms spent on each step (~1.9s total)
+const COMPLETE_HOLD  = 600    // ms to show "ANALYSIS COMPLETE" before navigating
 
 /**
  * Props:
@@ -25,7 +27,9 @@ export default function LoadingOverlay({ loading, hasError, onDone }) {
   const stepsDoneRef  = useRef(false)
   const timersRef     = useRef([])
   const onDoneRef     = useRef(onDone)
-  onDoneRef.current   = onDone
+  useEffect(() => {
+    onDoneRef.current = onDone
+  }, [onDone])
 
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout)
@@ -66,34 +70,24 @@ export default function LoadingOverlay({ loading, hasError, onDone }) {
       setCompletedSteps([])
       setPhase('running')
 
-      // Schedule Step 1
-      timersRef.current.push(setTimeout(() => {
-        setCompletedSteps(prev => [...prev, 0])
-        setActiveStep(1)
-      }, STEP_DURATION))
+      STEPS.forEach((_, idx) => {
+        if (idx < STEPS.length - 1) {
+          timersRef.current.push(setTimeout(() => {
+            setCompletedSteps(prev => [...prev, idx])
+            setActiveStep(idx + 1)
+          }, STEP_DURATION * (idx + 1)))
+        } else {
+          timersRef.current.push(setTimeout(() => {
+            setCompletedSteps(STEPS.map((_, i) => i))
+            stepsDoneRef.current = true
 
-      // Schedule Step 2
-      timersRef.current.push(setTimeout(() => {
-        setCompletedSteps(prev => [...prev, 1])
-        setActiveStep(2)
-      }, STEP_DURATION * 2))
-
-      // Schedule Step 3
-      timersRef.current.push(setTimeout(() => {
-        setCompletedSteps(prev => [...prev, 2])
-        setActiveStep(3)
-      }, STEP_DURATION * 3))
-
-      // Schedule Step 4 completion
-      timersRef.current.push(setTimeout(() => {
-        setCompletedSteps([0, 1, 2, 3])
-        stepsDoneRef.current = true
-
-        // If backend API has already responded, finish immediately
-        if (apiDoneRef.current) {
-          finishPipeline()
+            // If backend API has already responded, finish immediately
+            if (apiDoneRef.current) {
+              finishPipeline()
+            }
+          }, STEP_DURATION * STEPS.length))
         }
-      }, STEP_DURATION * 4))
+      })
     }
   }, [loading])
 

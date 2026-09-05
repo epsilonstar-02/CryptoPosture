@@ -31,7 +31,8 @@ export default function App() {
         if (res.ok) {
           setApiStatus('online')
           const data = await res.json()
-          setSampleCount(Array.isArray(data) ? data.length : null)
+          const count = Array.isArray(data) ? data.length : (Array.isArray(data?.samples) ? data.samples.length : null)
+          setSampleCount(count)
         } else {
           setApiStatus('offline')
         }

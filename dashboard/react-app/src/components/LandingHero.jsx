@@ -1,11 +1,26 @@
 import { useRef, useState, useEffect } from 'react'
 
 const SAMPLES = [
-  { name: 'clean_implicit_tls',          label: 'Clean implicit TLS',    tier: 'LOW',      meta: 'IMAPS · TLS 1.3 · ECDHE',       desc: 'Baseline healthy session' },
-  { name: 'weak_cipher_starttls',        label: 'Weak cipher STARTTLS',  tier: 'HIGH',     meta: 'SMTP · TLS 1.0 · 3DES',         desc: 'Deprecated cipher negotiated' },
-  { name: 'stripped_starttls_plaintext', label: 'STARTTLS stripped',     tier: 'CRITICAL', meta: 'SMTP · plaintext fallback',      desc: 'Downgrade to plaintext' },
-  { name: 'expired_cert_implicit_tls',   label: 'Expired certificate',   tier: 'HIGH',     meta: 'IMAPS · expired X.509',         desc: 'Certificate validity failure' },
-  { name: 'buffer_injection_attack',     label: 'Buffer injection',      tier: 'CRITICAL', meta: 'TLS · response injection',       desc: 'Active attack pattern' },
+  // Tier 1: Deterministic Synthetic Fixtures
+  { name: 'clean_implicit_tls',          tierCategory: 'tier1', tierNum: 'T1', label: 'Clean implicit TLS',    tier: 'LOW',      meta: 'IMAPS · TLS 1.3 · ECDHE',       desc: 'Baseline healthy session (score ~100)' },
+  { name: 'weak_cipher_starttls',        tierCategory: 'tier1', tierNum: 'T1', label: 'Weak cipher STARTTLS',  tier: 'HIGH',     meta: 'SMTP · TLS 1.0 · 3DES',         desc: 'Deprecated cipher negotiated (score ~30–55)' },
+  { name: 'stripped_starttls_plaintext', tierCategory: 'tier1', tierNum: 'T1', label: 'STARTTLS stripped',     tier: 'CRITICAL', meta: 'SMTP · plaintext fallback',      desc: 'MITM downgrade to plaintext (score 0)' },
+  { name: 'expired_cert_implicit_tls',   tierCategory: 'tier1', tierNum: 'T1', label: 'Expired certificate',   tier: 'HIGH',     meta: 'IMAPS · expired X.509',         desc: 'Certificate validity failure (score ~40–65)' },
+  { name: 'buffer_injection_attack',     tierCategory: 'tier1', tierNum: 'T1', label: 'Buffer injection',      tier: 'CRITICAL', meta: 'TLS · response injection',       desc: 'Poddebniak et al. USENIX (score <= 15)' },
+
+  // Tier 2: Real Mail-Server Lab Captures
+  { name: 'postfix_submission_tls13',    tierCategory: 'tier2', tierNum: 'T2', label: 'Postfix Submission',    tier: 'LOW',      meta: 'Port 587 · TLS 1.3 · PQC Ready',desc: 'Authentic Postfix submission handshake' },
+  { name: 'dovecot_imaps_tls12',         tierCategory: 'tier2', tierNum: 'T2', label: 'Dovecot IMAPS',         tier: 'LOW',      meta: 'Port 993 · TLS 1.2 · ECDHE',    desc: 'Authentic Dovecot enterprise mailbox access' },
+  { name: 'sendmail_opportunistic_starttls', tierCategory: 'tier2', tierNum: 'T2', label: 'Sendmail STARTTLS', tier: 'MEDIUM',   meta: 'Port 25 · Opportunistic STARTTLS', desc: 'Authentic inter-MTA mail exchange' },
+
+  // Tier 3: Adversarial & Edge-Case Captures
+  { name: 'cert_sni_mismatch',           tierCategory: 'tier3', tierNum: 'T3', label: 'Cert SNI Mismatch',     tier: 'HIGH',     meta: 'TLS 1.2 · Hostname Mismatch',   desc: 'Server certificate CN does not match SNI' },
+  { name: 'cert_weak_rsa1024',           tierCategory: 'tier3', tierNum: 'T3', label: 'Weak RSA 1024-bit',     tier: 'HIGH',     meta: 'TLS 1.2 · Sub-2048-bit Key',    desc: 'Deprecated 1024-bit RSA certificate key' },
+  { name: 'tcp_fragmented_client_hello', tierCategory: 'tier3', tierNum: 'T3', label: 'TCP Fragmented Hello',  tier: 'LOW',      meta: 'TLS 1.3 · Multi-segment TCP',   desc: 'ClientHello split across fragmented segments' },
+  { name: 'tcp_retransmission_duplicates', tierCategory: 'tier3', tierNum: 'T3', label: 'TCP Retransmissions', tier: 'LOW',     meta: 'TLS 1.3 · Duplicate Segments',  desc: 'Network retransmissions deduplicated' },
+  { name: 'out_of_order_tcp_segments',   tierCategory: 'tier3', tierNum: 'T3', label: 'Out-of-Order TCP',      tier: 'MEDIUM',   meta: 'TLS 1.2 · Segment Reordering',  desc: 'TCP segments delivered out of order' },
+  { name: 'malformed_tls_record_length', tierCategory: 'tier3', tierNum: 'T3', label: 'Malformed TLS Record',  tier: 'CRITICAL', meta: 'TLS Record Layer Anomaly',      desc: 'Truncated record length field in stream' },
+  { name: 'incomplete_tls_handshake_rst', tierCategory: 'tier3', tierNum: 'T3', label: 'Incomplete Handshake RST', tier: 'HIGH', meta: 'TCP RST during handshake',     desc: 'Connection torn down before Finished message' },
 ]
 
 const FEATURE_CARDS = [
@@ -15,24 +30,24 @@ const FEATURE_CARDS = [
     accent: 'blue',
     items: [
       'SMTP / IMAP / POP3 traffic',
-      'TLS handshake parameters',
-      'X.509 certificate health',
-      'STARTTLS negotiation flow',
-      'Buffer injection attacks',
-      'JA4 / JA4S / JA4X fingerprints',
+      'TLS 1.2 & TLS 1.3 stateful handshakes',
+      'X.509 certificate chains & SAN verification',
+      'STARTTLS downgrade & stripping detection',
+      'Buffer injection attacks (Poddebniak et al.)',
+      'JA4 / JA4S / JA4X fingerprints & PQC flags',
     ],
   },
   {
     index: '02 / RISK ENGINE',
-    title: 'How it scores',
+    title: 'How it scores (crypto-posture-v1)',
     accent: 'violet',
     items: [
-      'TLS Version — weight 0.25',
-      'Cipher Suite — weight 0.20',
-      'Certificate Health — 0.20',
-      'STARTTLS Transition — 0.15',
-      'Forward Secrecy — 0.10',
-      'Protocol Context — 0.10',
+      'TLS Version — weight 25%',
+      'Cipher Suite — weight 20%',
+      'Certificate Health — weight 20%',
+      'STARTTLS Transition — weight 15%',
+      'Forward Secrecy — weight 10%',
+      'Protocol Context — weight 10%',
     ],
   },
   {
@@ -40,12 +55,12 @@ const FEATURE_CARDS = [
     title: 'What it validates',
     accent: 'green',
     items: [
-      'NIST SP 800-52 Rev. 2',
-      'RFC 9325 / BCP 195',
-      'RFC 8314 (Implicit TLS)',
-      'RFC 8996 (TLS deprecation)',
-      'RFC 3207 (STARTTLS)',
-      "Poddebniak et al. USENIX '21",
+      'RFC 9325 / BCP 195 (TLS 1.3/1.2)',
+      'RFC 8996 (TLS 1.0/1.1 Deprecation)',
+      'RFC 8314 (Cleartext Obsolete / Implicit TLS)',
+      'NIST SP 800-52 Rev. 2 (TLS Guidance)',
+      'NIST SP 800-57 (Key Management Strength)',
+      "Poddebniak et al. USENIX '21 (Buffer Injection)",
     ],
   },
 ]
@@ -64,6 +79,11 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
   const [dragging, setDragging] = useState(false)
   const [relTime, setRelTime]   = useState(null)
   const [engineState, setEngineState] = useState('STANDBY')
+  const [activeTier, setActiveTier]   = useState('all')
+
+  const visibleSamples = activeTier === 'all'
+    ? SAMPLES
+    : SAMPLES.filter(s => s.tierCategory === activeTier)
 
   /* keep relative time ticking */
   useEffect(() => {
@@ -244,17 +264,35 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
           <div>
             <div className="hero-eyebrow demo-eyebrow">
               <span className="sandbox-badge">SANDBOX</span>
-              CURATED PCAPS
+              CURATED EVIDENCE BENCHMARK (15 PCAPS)
             </div>
             <h2>Explore a known scenario</h2>
           </div>
-          <p>Useful for understanding analysis output before opening your own evidence.<br />
-            <span className="demo-click-hint">↙ Click any card to instantly run that scenario</span>
+          <p>Ground-truth benchmark corpus across three forensic tiers.<br />
+            <span className="demo-click-hint">↙ Click any card to run deep packet inspection</span>
           </p>
         </div>
 
+        {/* Tier filter tabs */}
+        <div className="filter-bar" style={{ marginBottom: 16 }}>
+          {[
+            { id: 'all', label: 'All PCAPs', count: SAMPLES.length },
+            { id: 'tier1', label: 'Tier 1: Synthetic Fixtures', count: 5 },
+            { id: 'tier2', label: 'Tier 2: Real Lab Captures', count: 3 },
+            { id: 'tier3', label: 'Tier 3: Adversarial Edge Cases', count: 7 },
+          ].map(t => (
+            <button
+              key={t.id}
+              className={`filter-chip${activeTier === t.id ? ' filter-chip--active' : ''}`}
+              onClick={() => setActiveTier(t.id)}
+            >
+              {t.label} <span style={{ opacity: 0.6, fontSize: '0.62rem', marginLeft: 4 }}>({t.count})</span>
+            </button>
+          ))}
+        </div>
+
         <div className="demo-grid">
-          {SAMPLES.map((sample, index) => (
+          {visibleSamples.map((sample, index) => (
             <button
               key={sample.name}
               className={`demo-card demo-card--${sample.tier.toLowerCase()}`}
@@ -263,11 +301,15 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
               title={`Run scenario: ${sample.label}`}
               aria-label={`Load demo PCAP: ${sample.label} (${sample.tier} risk)`}
             >
-              <span className="demo-number">0{index + 1}</span>
-              <span className={`risk-pill risk-pill--${sample.tier}`}>
-                <span className={`risk-dot risk-dot--${sample.tier}`} />
-                {sample.tier}
-              </span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <span className="demo-number" style={{ fontFamily: 'var(--font-mono)', fontSize: '0.65rem', color: 'var(--accent-blue)' }}>
+                  {sample.tierNum} · {String(index + 1).padStart(2, '0')}
+                </span>
+                <span className={`risk-pill risk-pill--${sample.tier}`} style={{ fontSize: '0.6rem', padding: '2px 8px' }}>
+                  <span className={`risk-dot risk-dot--${sample.tier}`} />
+                  {sample.tier}
+                </span>
+              </div>
               <strong>{sample.label}</strong>
               <small>{sample.meta}</small>
               <span className="demo-desc">{sample.desc}</span>

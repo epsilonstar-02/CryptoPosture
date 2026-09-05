@@ -14,7 +14,7 @@ function getColor(score) {
   return SCORE_COLORS.crit
 }
 
-export default function PostureGauge({ score, tier }) {
+export default function PostureGauge({ score, tier, bare = false }) {
   const canvasRef = useRef(null)
   const animRef   = useRef(null)
   const curRef    = useRef(0)
@@ -88,6 +88,15 @@ export default function PostureGauge({ score, tier }) {
 
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
   }, [safeScore, color])
+
+  if (bare) {
+    return (
+      <div className="gauge-bare-wrap">
+        <canvas ref={canvasRef} width={200} height={200} style={{ maxWidth: '100%' }} />
+        <div className="gauge-sublabel">Volume-Weighted Harmonic Index</div>
+      </div>
+    )
+  }
 
   return (
     <div className="panel panel--glow gauge-panel">

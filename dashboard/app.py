@@ -450,6 +450,8 @@ else:
             with col_c:
                 fp = s.get("fingerprints", {})
                 ml = s.get("ml_anomaly", {})
+                anom_val = 'YES ⚡' if ml.get('is_anomalous') else ('<5 SESSIONS' if ml.get('status') == 'INSUFFICIENT_BASELINE' else 'No')
+                score_val = f"{ml['anomaly_score']:.4f}" if ml.get('anomaly_score') is not None else ('— (baseline <5)' if ml.get('status') == 'INSUFFICIENT_BASELINE' else '—')
                 st.markdown("**🧬 Fingerprints & ML**")
                 st.markdown(f"""
                 | Field | Value |
@@ -457,8 +459,8 @@ else:
                 | JA4 | `{fp.get('ja4','—') or '—'}` |
                 | JA4S | `{fp.get('ja4s','—') or '—'}` |
                 | JA4X | `{fp.get('ja4x','—') or '—'}` |
-                | Anomaly | `{'YES ⚡' if ml.get('is_anomalous') else 'No'}` |
-                | Anomaly Score | `{ml.get('anomaly_score','—')}` |
+                | Capture Outlier | `{anom_val}` |
+                | Liu Anomaly Score | `{score_val}` |
                 | Buffer Inject | `{'YES ⚠️' if s.get('buffer_injection_detected') else 'No'}` |
                 """)
 
@@ -493,13 +495,16 @@ else:
             else:
                 st.success("✅ No violations detected for this session.")
 
-            if ml.get("is_anomalous") and ml.get("top_features"):
-                st.markdown("**🤖 ML Anomaly Feature Drivers**")
-                feats = ml.get("top_features", {})
+            if ml.get("is_anomalous") and (ml.get("unusual_characteristics") or ml.get("top_features")):
+                st.markdown("**🤖 Most Unusual Characteristics (Population Deviation)**")
+                st.caption("Descriptive Z-score deviation relative to peer sessions in this capture. Does not represent causal model attribution.")
+                feats = ml.get("unusual_characteristics") or ml.get("top_features", {})
                 feat_df = pd.DataFrame(
                     [{"Feature": k, "Z-Score Deviation": v} for k, v in feats.items()]
                 )
                 st.dataframe(feat_df, use_container_width=True, hide_index=True)
+            elif ml.get("status") == "INSUFFICIENT_BASELINE":
+                st.info("ℹ️ **ML Anomaly Analysis:** Capture contains fewer than 5 sessions. Capture-relative outlier detection was not trained to avoid unrepresentative false alarms.")
 
 
 # ---------------------------------------------------------------------------
