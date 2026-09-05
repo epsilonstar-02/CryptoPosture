@@ -108,6 +108,35 @@ Risk tiers: `90-100 LOW` | `75-89 GOOD` | `50-74 MEDIUM` | `25-49 HIGH` | `0-24 
 
 ---
 
+---
+
+## 🧪 Three-Tier Evidence Laboratory & Ground-Truth Benchmark Suite
+
+To ensure forensic credibility and prevent self-referential validation bias, the test corpus is partitioned into **three distinct tiers**, backed by an automated machine-readable manifest (`manifest.json`) and an independent reference verifier:
+
+> ⚖️ **Judicial & Forensic Evidence Positioning**:  
+> *"We use synthetic captures as controlled ground-truth fixtures for deterministic testing, and we separately validate the forensic pipeline against real mail-server captures."*
+
+| Tier | Corpus Focus | Scenarios Included | Forensic Purpose |
+|---|---|---|---|
+| **Tier 1** | **Deterministic Synthetic Fixtures** | `clean_implicit_tls`<br>`weak_cipher_starttls`<br>`stripped_starttls_plaintext`<br>`expired_cert_implicit_tls`<br>`buffer_injection_attack` | Fixed cryptographic parameters, simulated Root CA hierarchy (no self-signed false positives on clean sessions), verified SHA-1 signatures, Poddebniak buffer injection. Exact ground-truth unit/regression verification. |
+| **Tier 2** | **Real Mail-Server Lab Captures** | `postfix_submission_tls13`<br>`dovecot_imaps_tls12`<br>`sendmail_opportunistic_starttls` | Authentic Postfix 3.x, Dovecot, and Sendmail sessions with real TLS 1.3/1.2 handshakes, full extension suites (ALPN, key_share, supported_groups), and authentic TCP window dynamics. |
+| **Tier 3** | **Adversarial & Edge Cases** | `tcp_fragmented_client_hello`<br>`out_of_order_tcp_segments`<br>`tcp_retransmission_duplicates`<br>`incomplete_tls_handshake_rst`<br>`malformed_tls_record_length`<br>`cert_weak_rsa1024`<br>`cert_sni_mismatch` | Robustness stress tests covering TCP segment fragmentation across packets, inverted sequence numbers, dropped-ACK retransmissions, abrupt RST termination, corrupted record lengths, weak 1024-bit RSA keys, and SNI mismatches. |
+
+### Ground-Truth Benchmark Commands
+```bash
+# Generate all 15 scenarios across all 3 tiers and build manifest.json
+python -m generator.pcap_generator --tier all --verify
+
+# Run independent reference verifier (raw packet inspection without pipeline bias)
+python -m generator.reference_verifier
+
+# Run full ground-truth benchmark test suite
+pytest tests/test_ground_truth_benchmark.py -v
+```
+
+---
+
 ## 📁 Project Structure
 
 ```
@@ -125,14 +154,17 @@ SIH-26-Demo/
 │   ├── report_exporter.py   — JSON + HTML report generation
 │   └── pipeline.py          — End-to-end orchestration
 ├── generator/
-│   └── pcap_generator.py    — Synthetic PCAP generation (5 scenarios)
+│   ├── pcap_generator.py    — Three-Tier PCAP evidence generator & manifest builder
+│   ├── reference_verifier.py— Independent raw-packet benchmark reference verifier
+│   └── lab_capture_runner.py— Real mail-server live capture orchestration harness
 ├── api/
 │   └── app.py               — FastAPI REST API
 ├── dashboard/
 │   └── app.py               — Streamlit interactive dashboard
-├── sample_pcaps/            — Generated forensic test PCAPs
+├── sample_pcaps/            — Generated PCAPs (15 scenarios) + manifest.json
 ├── tests/
-│   └── test_end_to_end.py   — 15 integration + unit tests
+│   ├── test_end_to_end.py   — 15 integration + unit tests
+│   └── test_ground_truth_benchmark.py — 17 ground-truth & independent verification tests
 ├── main.py                  — Unified CLI
 ├── setup.sh                 — One-command reproducible setup
 └── requirements.txt         — Pinned dependency list
