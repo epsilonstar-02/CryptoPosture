@@ -679,6 +679,38 @@ class TestInconclusiveAndAlertStates(unittest.TestCase):
         self.assertEqual(p2.content_type, 0x17)
         self.assertEqual(p2.version_raw, 0x0303)
 
+    def test_extension_and_oid_preservation_for_ja4(self):
+        """Verify client_extensions, server_extensions, and certificate OID sequences are preserved."""
+        ch_body = _build_client_hello(
+            legacy_version=0x0303,
+            cipher_suites=[0x1301, 0x1302],
+            sni="test.example.com",
+            supported_groups=[0x001D, 0x0017],
+            supported_versions=[0x0304, 0x0303],
+        )
+        ch_rec = _build_record(0x16, 0x0301, ch_body)
+
+        sh_body = _build_server_hello(
+            legacy_version=0x0303,
+            cipher_suite=0x1301,
+            selected_version=0x0304,
+            selected_group=0x001D,
+        )
+        sh_rec = _build_record(0x16, 0x0303, sh_body)
+
+        combined = parse_combined(ch_rec, sh_rec)
+
+        # Verify client extensions preserved in order (SNI=0x0000, supported_groups=0x000A, supported_versions=0x002B)
+        self.assertIn(0x0000, combined.client_extensions)
+        self.assertIn(0x000A, combined.client_extensions)
+        self.assertIn(0x002B, combined.client_extensions)
+        self.assertEqual(combined.client_extensions, [0x0000, 0x000A, 0x002B])
+
+        # Verify server extensions preserved (supported_versions=0x002B, key_share=0x0033)
+        self.assertIn(0x002B, combined.server_extensions)
+        self.assertIn(0x0033, combined.server_extensions)
+        self.assertEqual(combined.server_extensions, [0x002B, 0x0033])
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

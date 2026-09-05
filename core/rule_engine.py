@@ -824,7 +824,7 @@ class PolicyEngine:
 
         ke = s.key_exchange
         if ke is None or ke == KeyExchange.UNKNOWN:
-            status = FindingStatus.INCONCLUSIVE if s.handshake_status != "COMPLETED" else FindingStatus.NOT_EVALUATED
+            status = FindingStatus.INCONCLUSIVE if s.handshake_status not in ("COMPLETED", "HANDSHAKE_MESSAGES_COMPLETE") else FindingStatus.NOT_EVALUATED
             findings.append(self._make_finding("FS-001", status=status, confidence=ConfidenceLevel.LOW, observed="UNKNOWN"))
             findings.append(self._make_finding("FS-002", status=status, confidence=ConfidenceLevel.LOW, observed="UNKNOWN"))
             return findings

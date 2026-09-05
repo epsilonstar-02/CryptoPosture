@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import List, Optional, Tuple, Union
 
-from .models import CertHealth, CertValidity, KeyExchange, TLSVersion
+from .models import CertHealth, CertValidity, KeyExchange, PublicKeyProfile, TLSVersion
 
 
 # ---------------------------------------------------------------------------
@@ -515,6 +515,7 @@ def _parse_client_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
         offered_versions: list[int] = []
         key_share_groups: list[int] = []
         has_pqc = False
+        extension_types: list[int] = []
 
         if offset + 2 <= len(body):
             ext_total = struct.unpack(">H", body[offset:offset+2])[0]
@@ -526,6 +527,7 @@ def _parse_client_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
                 ext_len = struct.unpack(">H", body[offset+2:offset+4])[0]
                 ext_data = body[offset+4: offset+4+ext_len]
                 offset += 4 + ext_len
+                extension_types.append(ext_type)
 
                 if ext_type == 0x0000:  # server_name (SNI)
                     sni = _parse_sni(ext_data)
@@ -560,6 +562,8 @@ def _parse_client_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
             "alpn":                 alpn_protocols,
             "key_share_groups":     key_share_groups,
             "has_pqc":              has_pqc,
+            "pqc_offered":          has_pqc,
+            "extensions":           extension_types,
         }
     except Exception as e:
         diagnostics.append(f"ClientHello parsing error: {e}")
@@ -630,6 +634,7 @@ def _parse_server_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
         selected_version = None
         selected_group = None
         alpn_selected = None
+        extension_types: list[int] = []
 
         if offset + 2 <= len(body):
             ext_total = struct.unpack(">H", body[offset:offset+2])[0]
@@ -641,6 +646,7 @@ def _parse_server_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
                 ext_len = struct.unpack(">H", body[offset+2:offset+4])[0]
                 ext_data = body[offset+4: offset+4+ext_len]
                 offset += 4 + ext_len
+                extension_types.append(ext_type)
 
                 if ext_type == 0x002B and len(ext_data) >= 2:  # supported_versions
                     selected_version = struct.unpack(">H", ext_data[:2])[0]
@@ -664,6 +670,7 @@ def _parse_server_hello(body: bytes, diagnostics: list[str]) -> Optional[dict]:
             "is_hello_retry_request": is_hello_retry_request,
             "is_downgrade_detected":  is_downgrade_detected,
             "downgrade_warning":      downgrade_warning,
+            "extensions":             extension_types,
         }
     except Exception as e:
         diagnostics.append(f"ServerHello parsing error: {e}")
@@ -736,7 +743,7 @@ def _parse_alpn(ext_data: bytes) -> list[str]:
             proto_len = ext_data[offset]
             offset += 1
             if offset + proto_len <= len(ext_data):
-                proto = ext_data[offset:offset+proto_len].decode("ascii", errors="replace")
+                proto = ext_data[offset:offset+proto_len].decode("latin1")
                 protocols.append(proto)
             offset += proto_len
     except Exception:
@@ -1065,6 +1072,26 @@ def _parse_certificate_object(cert_bytes: bytes, sni: Optional[str] = None) -> O
                     f"SNI mismatch: client SNI '{sni}' does not match certificate SANs {san_list} or CN '{subject_cn}'"
                 )
 
+        pub_profile = PublicKeyProfile.compute(
+            key_type=key_type,
+            key_length=key_length,
+            curve_name=curve_name,
+        )
+
+        # Extract ordered OIDs for JA4X certificate lineage tracking
+        try:
+            issuer_rdn_oids = [attr.oid.dotted_string for attr in cert.issuer]
+        except Exception:
+            issuer_rdn_oids = []
+        try:
+            subject_rdn_oids = [attr.oid.dotted_string for attr in cert.subject]
+        except Exception:
+            subject_rdn_oids = []
+        try:
+            extension_oids = [ext.oid.dotted_string for ext in cert.extensions]
+        except Exception:
+            extension_oids = []
+
         cert_health = CertHealth(
             validity=validity,
             key_length_bits=key_length,
@@ -1085,6 +1112,10 @@ def _parse_certificate_object(cert_bytes: bytes, sni: Optional[str] = None) -> O
             signature_valid=signature_valid,
             san_matches_sni=san_matches_sni,
             diagnostics=cert_diagnostics,
+            issuer_rdn_oids=issuer_rdn_oids,
+            subject_rdn_oids=subject_rdn_oids,
+            extension_oids=extension_oids,
+            public_key=pub_profile,
         )
         return cert_health, cert
 
@@ -1158,6 +1189,8 @@ class HandshakeResult:
     is_weak_cipher:    bool                  = False
     sni:               Optional[str]         = None
     has_pqc:           bool                  = False
+    pqc_offered:       bool                  = False
+    pqc_negotiated:    bool                  = False
     cert:              Optional[CertHealth]  = None
 
     # Full certificate chain & diagnostics
@@ -1165,6 +1198,12 @@ class HandshakeResult:
     diagnostics:       list[str]             = field(default_factory=list)
     record_provenance: list[RecordProvenance] = field(default_factory=list)
     handshake_status:  str                   = "UNKNOWN"
+
+    # 🔴 Fix 2: TLS 1.3 passive certificate visibility
+    # VISIBLE          — certificate message parsed from plaintext handshake record
+    # ENCRYPTED_TLS13  — TLS 1.3 detected; Certificate is encrypted; no session keys provided
+    # UNKNOWN          — no TLS version determined yet, or non-TLS 1.3 with no cert
+    cert_visibility: str = "UNKNOWN"
 
     # Negotiation & Extension metadata
     client_offered_versions: list[TLSVersion] = field(default_factory=list)
@@ -1181,9 +1220,12 @@ class HandshakeResult:
     alert_description:       Optional[int]    = None
     alert_description_name:  Optional[str]    = None
 
-    # Raw fields for JA4 fingerprinting
-    client_cipher_suites:    list[int] = field(default_factory=list)
-    client_supported_groups: list[int] = field(default_factory=list)
+    # Raw fields for JA4 / JA4S fingerprinting
+    client_cipher_suites:    list[int]        = field(default_factory=list)
+    client_supported_groups: list[int]        = field(default_factory=list)
+    client_extensions:       list[int]        = field(default_factory=list)
+    server_extensions:       list[int]        = field(default_factory=list)
+    server_alpn:             Optional[str]    = None
 
 
 def parse_tls_handshake(stream_data: bytes, direction: str = "unknown") -> HandshakeResult:
@@ -1229,6 +1271,7 @@ def parse_tls_handshake(stream_data: bytes, direction: str = "unknown") -> Hands
                 result.tls_version = _TLS_VERSION_MAP.get(ch["version"], TLSVersion.UNKNOWN)
                 result.sni = ch.get("sni")
                 result.has_pqc = ch.get("has_pqc", False)
+                result.pqc_offered = ch.get("pqc_offered", ch.get("has_pqc", False))
                 result.client_cipher_suites = ch.get("cipher_suites", [])
                 result.client_supported_groups = ch.get("supported_groups", [])
                 result.client_alpn = ch.get("alpn", [])
@@ -1238,6 +1281,7 @@ def parse_tls_handshake(stream_data: bytes, direction: str = "unknown") -> Hands
                     for v in ch.get("offered_versions", [])
                     if not is_grease(v)
                 ]
+                result.client_extensions = ch.get("extensions", [])
                 client_hello_parsed = True
 
         elif msg.msg_type == 0x02 and not server_hello_parsed:  # ServerHello
@@ -1259,9 +1303,12 @@ def parse_tls_handshake(stream_data: bytes, direction: str = "unknown") -> Hands
                     )
                     if result.selected_group in _PQC_GROUPS:
                         result.has_pqc = True
+                        result.pqc_negotiated = True
 
                 result.is_downgrade_detected = sh.get("is_downgrade_detected", False)
                 result.downgrade_warning = sh.get("downgrade_warning")
+                result.server_extensions = sh.get("extensions", [])
+                result.server_alpn = sh.get("alpn")
                 server_hello_parsed = True
 
         elif msg.msg_type == 0x0B:  # Certificate
@@ -1280,7 +1327,7 @@ def parse_tls_handshake(stream_data: bytes, direction: str = "unknown") -> Hands
 
     # Set directional handshake status
     if client_hello_parsed and server_hello_parsed:
-        result.handshake_status = "COMPLETED"
+        result.handshake_status = "HANDSHAKE_MESSAGES_COMPLETE"
     elif client_hello_parsed:
         result.handshake_status = "INCONCLUSIVE_CLIENT_HELLO_ONLY"
     elif server_hello_parsed:
@@ -1317,11 +1364,16 @@ def parse_combined(client_data: bytes, server_data: bytes) -> HandshakeResult:
                 f"{leaf_cert.san_list} or CN '{leaf_cert.subject_cn}'"
             )
 
-    # Determine aggregated handshake status
+    # 🔴 Fix 3: Handshake status semantics
+    # "HANDSHAKE_MESSAGES_COMPLETE" means ClientHello + ServerHello were both observed.
+    # This does NOT imply that the full TLS handshake completed (Finished messages,
+    # encrypted record exchange, etc.). For TLS 1.2, this is a good proxy.
+    # For TLS 1.3, additional messages (EncryptedExtensions, Certificate, Finished)
+    # are encrypted and cannot be verified passively without session keys.
     if sv_result.alert_level is not None or ch_result.alert_level is not None:
         status = "ALERT_TERMINATED"
     elif sv_result.cipher_suite_id is not None and sv_result.tls_version is not None:
-        status = "COMPLETED"
+        status = "HANDSHAKE_MESSAGES_COMPLETE"
     elif ch_result.client_cipher_suites and not sv_result.cipher_suite_id:
         if not server_data:
             status = "INCONCLUSIVE_CLIENT_HELLO_ONLY"
@@ -1334,8 +1386,29 @@ def parse_combined(client_data: bytes, server_data: bytes) -> HandshakeResult:
     else:
         status = sv_result.handshake_status or ch_result.handshake_status
 
+    # 🔴 Fix 2: Determine TLS 1.3 certificate visibility
+    # In real-world TLS 1.3, the Certificate message is encrypted after ServerHello.
+    # Only synthetic captures or captures with key material have visible certificates.
+    negotiated_version = sv_result.tls_version or ch_result.tls_version
+    from .models import TLSVersion as _TV
+    is_tls13 = (negotiated_version == _TV.TLS13)
+    combined_diagnostics = ch_result.diagnostics + sv_result.diagnostics
+
+    if leaf_cert is not None:
+        cert_visibility = "VISIBLE"
+    elif is_tls13:
+        cert_visibility = "ENCRYPTED_TLS13"
+        combined_diagnostics = combined_diagnostics + [
+            "TLS 1.3 certificate unavailable: handshake encrypted after ServerHello "
+            "and no session keys (SSLKEYLOGFILE) were provided. Passive inspection "
+            "cannot access the Certificate message. Certificate-based findings are "
+            "INCONCLUSIVE for this session."
+        ]
+    else:
+        cert_visibility = "UNKNOWN"
+
     final = HandshakeResult(
-        tls_version                 = sv_result.tls_version or ch_result.tls_version,
+        tls_version                 = negotiated_version,
         cipher_suite_id             = sv_result.cipher_suite_id,
         cipher_suite_name           = sv_result.cipher_suite_name,
         key_exchange                = sv_result.key_exchange,
@@ -1343,11 +1416,14 @@ def parse_combined(client_data: bytes, server_data: bytes) -> HandshakeResult:
         is_weak_cipher              = sv_result.is_weak_cipher,
         sni                         = ch_result.sni,
         has_pqc                     = sv_result.has_pqc or ch_result.has_pqc,
+        pqc_offered                 = ch_result.pqc_offered or ch_result.has_pqc,
+        pqc_negotiated              = sv_result.pqc_negotiated,
         cert                        = leaf_cert,
         cert_chain                  = sv_result.cert_chain,
-        diagnostics                 = ch_result.diagnostics + sv_result.diagnostics,
+        diagnostics                 = combined_diagnostics,
         record_provenance           = ch_result.record_provenance + sv_result.record_provenance,
         handshake_status            = status,
+        cert_visibility             = cert_visibility,
         client_offered_versions     = ch_result.client_offered_versions,
         client_alpn                 = ch_result.client_alpn,
         client_signature_algorithms = ch_result.client_signature_algorithms,
@@ -1361,5 +1437,8 @@ def parse_combined(client_data: bytes, server_data: bytes) -> HandshakeResult:
         alert_description_name      = sv_result.alert_description_name or ch_result.alert_description_name,
         client_cipher_suites        = ch_result.client_cipher_suites,
         client_supported_groups     = ch_result.client_supported_groups,
+        client_extensions           = ch_result.client_extensions,
+        server_extensions           = sv_result.server_extensions,
+        server_alpn                 = sv_result.server_alpn,
     )
     return final
