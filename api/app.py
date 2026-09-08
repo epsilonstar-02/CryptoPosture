@@ -34,7 +34,14 @@ from core.ingestion import (
 from core.models import FORENSIC_ENGINE_VERSION, SCHEMA_VERSION
 from core.pipeline import analyze_pcap
 from core.report_exporter import export_json, export_html
-from generator.pcap_generator import generate_all, DEFAULT_OUTPUT_DIR, SCENARIO_GENERATORS
+from generator.pcap_generator import (
+    generate_all,
+    generate_enterprise_simulations,
+    DEFAULT_OUTPUT_DIR,
+    SCENARIO_GENERATORS,
+    ENTERPRISE_GENERATORS,
+    ALL_SCENARIO_GENERATORS,
+)
 
 # ---------------------------------------------------------------------------
 # Logging & Configuration
@@ -74,9 +81,8 @@ SAMPLE_DIR = Path(DEFAULT_OUTPUT_DIR)
 app = FastAPI(
     title="Email Cryptographic Forensics Framework",
     description=(
-        "AI-Assisted Passive Network Forensic Framework for Enterprise Email "
-        "Cryptographic Posture Assessment. Analyzes PCAP/PCAPNG files and "
-        "produces per-session TLS/X.509 posture scores with violation reports."
+        "AI-assisted passive network forensic engine for email cryptographic posture assessment. "
+        "Compliant with RFC 8314, RFC 9325, NIST SP 800-52 Rev. 2, and Poddebniak et al. (USENIX '21)."
     ),
     version=FORENSIC_ENGINE_VERSION,
     docs_url="/docs",
@@ -99,8 +105,10 @@ app.add_middleware(
 def _ensure_samples():
     """Generate sample PCAPs if they don't already exist."""
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
-    if not list(SAMPLE_DIR.glob("*.pcap")):
+    if not (SAMPLE_DIR / "clean_implicit_tls.pcap").exists():
         generate_all(SAMPLE_DIR)
+    if not (SAMPLE_DIR / "enterprise_network_simulation.pcap").exists():
+        generate_enterprise_simulations(SAMPLE_DIR)
 
 
 def _require_demo_enabled():
@@ -361,12 +369,13 @@ demo_router = APIRouter(
 )
 
 
-@demo_router.get("/samples", summary="List available synthetic sample PCAPs")
+@demo_router.get("/samples", summary="List available synthetic and simulation sample PCAPs")
 def list_samples() -> dict:
-    """List the pre-generated synthetic forensic test PCAPs."""
+    """List the pre-generated synthetic and multi-session forensic test PCAPs."""
     _ensure_samples()
     samples = []
-    for name in SCENARIO_GENERATORS.keys():
+    all_names = list(ENTERPRISE_GENERATORS.keys()) + list(ALL_SCENARIO_GENERATORS.keys())
+    for name in all_names:
         path = SAMPLE_DIR / f"{name}.pcap"
         samples.append({
             "name": name,
@@ -374,15 +383,18 @@ def list_samples() -> dict:
             "exists": path.exists(),
             "size_bytes": path.stat().st_size if path.exists() else 0,
             "description": _SAMPLE_DESCRIPTIONS.get(name, ""),
+            "is_simulation": name in ENTERPRISE_GENERATORS,
         })
     return {"samples": samples, "directory": str(SAMPLE_DIR)}
 
 
-@demo_router.post("/samples/generate", summary="Regenerate all synthetic sample PCAPs")
+@demo_router.post("/samples/generate", summary="Regenerate all synthetic and simulation sample PCAPs")
 def generate_samples() -> dict:
-    """(Re)generate all synthetic forensic test PCAP files."""
+    """(Re)generate all synthetic and multi-session forensic test PCAP files."""
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
     paths = generate_all(SAMPLE_DIR)
+    ent_paths = generate_enterprise_simulations(SAMPLE_DIR)
+    paths.update(ent_paths)
     return {
         "generated": {k: str(v) for k, v in paths.items() if v},
         "errors": [k for k, v in paths.items() if not v],
@@ -478,4 +490,7 @@ _SAMPLE_DESCRIPTIONS = {
     "stripped_starttls_plaintext": "SMTP STARTTLS stripped by MITM — full plaintext fallback (EXPECTED: CRITICAL, score 0)",
     "expired_cert_implicit_tls":   "IMAPS port 993 — TLS 1.2, ECDHE, expired X.509 cert (EXPECTED: MEDIUM–HIGH, score 40–65)",
     "buffer_injection_attack":     "SMTP STARTTLS — Poddebniak et al. buffer injection of cleartext commands (EXPECTED: CRITICAL, score <= 15)",
+    "enterprise_network_simulation": "Corporate Perimeter Simulation (16 Flows, 119 Pkts) — Mixed Departments, PQC, Deprecated Ciphers, Attack Vectors (EXPECTED: CRITICAL)",
+    "mitm_attack_campaign":        "Adversarial MitM Attack Campaign (6 Flows, 46 Pkts) — Credential Theft, Buffer Injection, Phishing SNI Mismatch (EXPECTED: CRITICAL)",
+    "cloud_migration_audit":       "Hybrid Cloud Migration Audit (8 Flows, 63 Pkts) — Modern M365/PQC vs Legacy On-Prem Exchange & Cleartext ERP (EXPECTED: CRITICAL)",
 }

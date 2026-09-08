@@ -30,7 +30,7 @@ if sys.stderr and hasattr(sys.stderr, "reconfigure"):
         pass
 
 
-def _analyze(filepath: str, html: bool = False, output: str | None = None, run_ml: bool = True):
+def _analyze(filepath: str, html: bool = False, output: str | None = None, run_ml: bool = True, print_json: bool = True):
     """Run forensic analysis on a PCAP file and print/export results."""
     from core.pipeline import analyze_pcap
     from core.report_exporter import export_json, export_html
@@ -104,18 +104,32 @@ def _analyze(filepath: str, html: bool = False, output: str | None = None, run_m
     elif output:
         export_json(summary, output)
         print(f"\n✅ JSON report saved: {output}")
-    else:
+    elif print_json:
         # Print JSON to stdout
         print(f"\n{'─'*60}")
         print(json.dumps(data, indent=2))
 
 
+def _demo(html: bool = False, output: str | None = None, run_ml: bool = True):
+    """Run instant live demo using the 16-flow realistic enterprise network simulation capture."""
+    from generator.pcap_generator import generate_enterprise_simulations, DEFAULT_OUTPUT_DIR
+    pcap_path = DEFAULT_OUTPUT_DIR / "enterprise_network_simulation.pcap"
+    if not pcap_path.exists():
+        print("🏢 Synthesizing multi-session enterprise network simulation...")
+        generate_enterprise_simulations(DEFAULT_OUTPUT_DIR)
+    _analyze(str(pcap_path), html=html, output=output, run_ml=run_ml, print_json=False)
+
+
 def _generate_samples():
-    """Generate all 5 synthetic forensic test PCAPs."""
-    from generator.pcap_generator import generate_all, DEFAULT_OUTPUT_DIR
+    """Generate all synthetic forensic test PCAPs and enterprise simulations."""
+    from generator.pcap_generator import generate_all, generate_enterprise_simulations, DEFAULT_OUTPUT_DIR
     print("\n🧪 Generating synthetic forensic test PCAPs...")
     paths = generate_all(DEFAULT_OUTPUT_DIR)
-    print(f"\n✅ Done! {sum(1 for v in paths.values() if v)}/{len(paths)} PCAPs generated:")
+    print(f"\n✅ Benchmarks: {sum(1 for v in paths.values() if v)}/{len(paths)} PCAPs generated.")
+    print("\n🏢 Generating multi-session enterprise & adversarial simulations...")
+    ent_paths = generate_enterprise_simulations(DEFAULT_OUTPUT_DIR)
+    paths.update(ent_paths)
+    print(f"\n✅ Total {sum(1 for v in paths.values() if v)} PCAPs generated in {DEFAULT_OUTPUT_DIR}:")
     for name, path in paths.items():
         status = f"✓ {path}" if path else "✗ FAILED"
         print(f"  {name}: {status}")
@@ -142,6 +156,7 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
+  python main.py --demo
   python main.py --analyze capture.pcap
   python main.py --analyze capture.pcap --html --output report.html
   python main.py --generate-samples
@@ -151,8 +166,9 @@ Examples:
     )
 
     mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument("--demo", action="store_true", help="Run instant demo on realistic 16-flow enterprise perimeter simulation")
     mode.add_argument("--analyze", metavar="FILE.pcap", help="Analyze a PCAP/PCAPNG file")
-    mode.add_argument("--generate-samples", action="store_true", help="Generate synthetic demo PCAPs")
+    mode.add_argument("--generate-samples", action="store_true", help="Generate synthetic demo PCAPs and enterprise simulations")
     mode.add_argument("--run-api", action="store_true", help="Launch FastAPI REST API server")
     mode.add_argument("--test", action="store_true", help="Run the test suite")
 
@@ -164,7 +180,9 @@ Examples:
 
     args = parser.parse_args()
 
-    if args.analyze:
+    if args.demo:
+        _demo(html=args.html, output=args.output, run_ml=not args.no_ml)
+    elif args.analyze:
         _analyze(args.analyze, html=args.html, output=args.output, run_ml=not args.no_ml)
     elif args.generate_samples:
         _generate_samples()
