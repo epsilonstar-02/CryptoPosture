@@ -169,9 +169,13 @@ function buildHTMLReport(data) {
 
       ${comps.length > 0 ? `
       <div style="margin-top:12px">
-        <div style="font-size:0.82em;font-weight:700;color:#7b9bff;text-transform:uppercase;margin-bottom:6px">Scoring Dimension Audit</div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+          <div style="font-size:0.82em;font-weight:700;color:#7b9bff;text-transform:uppercase">Scoring Dimension Audit (Evidence-Aware Dynamic Renormalization)</div>
+          ${s.scoring_explanation?.evidence_coverage ? `<div style="font-size:0.75em;color:#aaa">Coverage: <strong>${s.scoring_explanation.evidence_coverage}</strong></div>` : ''}
+        </div>
+        ${s.scoring_explanation?.evidence_note ? `<div style="font-size:0.75em;color:#3dd8e8;background:#061826;padding:5px 10px;border-radius:4px;margin-bottom:8px">ℹ ${s.scoring_explanation.evidence_note}</div>` : ''}
         <table class="data-table">
-          <thead><tr><th>Dimension</th><th>Observed</th><th>Assessment</th><th>Score</th><th>Weight</th><th>Contrib</th><th>Standards Basis</th></tr></thead>
+          <thead><tr><th>Dimension</th><th>Observed</th><th>Assessment</th><th>Score</th><th>Base Wt</th><th>Eff Wt</th><th>Contrib</th><th>Standards Basis</th></tr></thead>
           <tbody>
             ${comps.map(c => `
               <tr>
@@ -180,12 +184,17 @@ function buildHTMLReport(data) {
                 <td><span class="pill-sm">${c.assessment}</span></td>
                 <td>${c.component_score.toFixed(0)}</td>
                 <td>${(c.weight * 100).toFixed(0)}%</td>
-                <td><strong>${c.contribution.toFixed(1)}</strong></td>
+                <td style="color:#3dd8e8;font-weight:600">${c.effective_weight != null ? (c.effective_weight * 100).toFixed(1) + '%' : (c.weight * 100).toFixed(0) + '%'}</td>
+                <td><strong>+${(c.effective_contribution != null ? c.effective_contribution : c.contribution).toFixed(1)}</strong></td>
                 <td style="font-size:0.85em;color:#a0b0ff">${(c.references || []).join(', ')}</td>
               </tr>
             `).join('')}
           </tbody>
         </table>
+        ${s.scoring_explanation ? `
+        <div style="font-size:0.74em;color:#888;margin-top:6px;font-family:monospace">
+          Reconciliation: Base Sum = ${s.scoring_explanation.raw_base_score?.toFixed(1) ?? '—'} · Renormalized = ${s.scoring_explanation.renormalized_score?.toFixed(1) ?? '—'}${s.scoring_explanation.critical_floor_applied != null ? ` · Critical Cap Ceiling = ${s.scoring_explanation.critical_floor_applied.toFixed(1)}` : ''} → Final Score = ${s.posture_score?.toFixed(1)}
+        </div>` : ''}
       </div>` : ''}
 
       ${viols.length > 0 ? `
@@ -280,7 +289,7 @@ function buildHTMLReport(data) {
         <span class="badge" style="background:#22c55e22;color:#22c55e;border-color:#22c55e44">LOW: ${rb.LOW || 0}</span>
       </div>
       <div style="font-size:0.75rem;color:#777;background:#080816;padding:8px 12px;border-radius:6px;border:1px solid #141432">
-        <strong>Aggregation:</strong> Volume-weighted harmonic mean (<em>H = W_total / ∑(w_i / S_i)</em>) using ${(expl.total_volume_bytes || 0).toLocaleString()} bytes as proxy.
+        <strong>Scoring Policy & Aggregation:</strong> Sessions evaluated via 6 calibrated dimensions with dynamic evidence-aware renormalization and non-additive critical score caps (<em>S = min(Cap_min, ∑ w_i_eff · S_i)</em>). Enterprise aggregation via volume-weighted harmonic mean (<em>H = W_total / ∑(w_i / S_i)</em>) using ${(expl.total_volume_bytes || 0).toLocaleString()} bytes as exposure proxy.
         ${expl.rationale || 'Penalizes critical security defects disproportionately to prevent gaps from being averaged away.'}
       </div>
     </div>

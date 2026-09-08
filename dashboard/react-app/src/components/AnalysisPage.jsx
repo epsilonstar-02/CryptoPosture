@@ -27,10 +27,11 @@ function EnterpriseExplanationPanel({ explanation, policy, engineVersion, schema
 
   return (
     <div className="panel audit-panel fade-in">
+      {/* ── Header ── */}
       <div className="audit-panel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            ⚖ Enterprise Posture Index Audit & Aggregation Method
+          <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            ⚖ Cryptographic Posture Scoring Engine & Enterprise Aggregation Audit
           </span>
           <span className="policy-badge">
             {policy?.id || 'crypto-posture-v1'} v{policy?.version || '1.0'}
@@ -41,77 +42,356 @@ function EnterpriseExplanationPanel({ explanation, policy, engineVersion, schema
         </div>
       </div>
 
-      <div className="audit-cards-grid">
-        <div className="audit-card">
-          <div className="audit-card-label">Mathematical Formula</div>
-          <div className="audit-card-formula">
-            H = W_total / ∑(w_i / S_i)
+      {/* ── Section 1: Enterprise Harmonic Mean Aggregation ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+            1. Enterprise Volume-Weighted Harmonic Aggregation
+          </span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+          Individual session posture scores are aggregated into an authoritative enterprise metric using a
+          volume-weighted harmonic mean. In contrast to arithmetic averaging, the harmonic mean enforces the
+          <strong> Weakest-Link Principle</strong>: high-volume or critical security failures disproportionately depress
+          the enterprise index and cannot be diluted by many low-risk connections.
+        </p>
+
+        <div className="audit-cards-grid">
+          <div className="audit-card">
+            <div className="audit-card-label">Harmonic Aggregation Formula</div>
+            <div className="audit-card-formula">
+              H = W_total / ∑(w_i / S_i)
+            </div>
+            <div className="audit-card-desc">
+              Where <code>W_total = ∑ w_i</code> is cumulative byte volume, and <code>S_i</code> is the session posture score.
+            </div>
           </div>
-          <div className="audit-card-desc">
-            Volume-weighted harmonic mean across reconstructed sessions.
+
+          <div className="audit-card">
+            <div className="audit-card-label">Total Operational Volume</div>
+            <div className="audit-card-value">
+              {(expl.total_volume_bytes || 0).toLocaleString()} bytes
+            </div>
+            <div className="audit-card-desc">
+              Reconstructed TCP payload and stream bytes serve as the proxy for network surface exposure.
+            </div>
+          </div>
+
+          <div className="audit-card">
+            <div className="audit-card-label">Weakest-Link Principle</div>
+            <div className="audit-card-desc" style={{ marginTop: 6, fontSize: '0.82rem' }}>
+              {expl.rationale || 'Penalizes critical vulnerabilities disproportionately to ensure security gaps cannot be averaged away.'}
+            </div>
           </div>
         </div>
 
-        <div className="audit-card">
-          <div className="audit-card-label">Operational Exposure Weight</div>
-          <div className="audit-card-value">
-            {(expl.total_volume_bytes || 0).toLocaleString()} bytes
+        {sessionContribs.length > 0 && (
+          <div style={{ marginTop: 14 }}>
+            <div style={{ fontWeight: 600, fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Per-Session Exposure Weights & Enterprise Score Contribution
+            </div>
+            <div className="audit-table-wrap">
+              <table className="audit-table">
+                <thead>
+                  <tr>
+                    <th>Flow</th>
+                    <th>Protocol</th>
+                    <th>Byte Volume</th>
+                    <th>Traffic %</th>
+                    <th>Session Score</th>
+                    <th>Risk Tier</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sessionContribs.map((c, i) => (
+                    <tr key={i}>
+                      <td style={{ color: 'var(--text-primary)' }}>{c.flow || c.session_id}</td>
+                      <td style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{c.protocol}</td>
+                      <td>{(c.byte_count || 0).toLocaleString()} B</td>
+                      <td>{(c.volume_percent || 0).toFixed(1)}%</td>
+                      <td style={{
+                        fontWeight: 700,
+                        color: c.posture_score >= 80 ? 'var(--risk-low)' : c.posture_score >= 55 ? 'var(--risk-medium)' : c.posture_score >= 30 ? 'var(--risk-high)' : 'var(--risk-critical)',
+                      }}>
+                        {c.posture_score?.toFixed(1)}
+                      </td>
+                      <td>
+                        <span className={`risk-pill risk-pill--${c.risk_tier}`} style={{ fontSize: '0.62rem', padding: '2px 7px' }}>
+                          {c.risk_tier}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
-          <div className="audit-card-desc">
-            TCP byte volume serves as proxy for operational network exposure.
-          </div>
-        </div>
+        )}
+      </div>
 
-        <div className="audit-card">
-          <div className="audit-card-label">Weakest-Link Principle</div>
-          <div className="audit-card-desc" style={{ marginTop: 6 }}>
-            {expl.rationale || 'Penalizes critical vulnerabilities disproportionately to ensure security gaps cannot be averaged away.'}
+      {/* ── Section 2: Calibrated Scoring Dimensions ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+            2. Six Calibrated Posture Dimensions (crypto-posture-v1)
+          </span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+          Each reconstructed session is independently assessed across 6 calibrated cryptographic sub-domains.
+          Numerical base weights sum to 100% and reflect risk prioritization established by IETF RFCs and NIST SP 800 guidelines.
+        </p>
+
+        <div className="audit-table-wrap">
+          <table className="audit-table">
+            <thead>
+              <tr>
+                <th>Dimension</th>
+                <th>Base Wt (w_i)</th>
+                <th>Evaluation Criteria & Scoring Rules</th>
+                <th>Standards Authority</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>TLS Version</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>25%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  TLS 1.3 (100 pts) · TLS 1.2 (80 pts) · TLS 1.1 (20 pts) · TLS 1.0 / SSLv3 (0 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 9325 / RFC 8996 / NIST SP 800-52r2</td>
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Cipher Suite</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>20%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  AEAD (GCM / Poly1305 = 100 pts) · CBC with SHA-256 (50 pts) · 3DES (10 pts) · RC4 / NULL (0 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>NIST SP 800-52r2 §3.3.1 / RFC 9325</td>
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Certificate Health</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>20%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Valid PKI chain & key size ≥2048-bit RSA / ≥256-bit ECC (100 pts) · Self-Signed (70 pts) · Expired (10 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 5280 / NIST SP 800-57 Part 1</td>
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>STARTTLS Transition</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>15%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Implicit TLS on secure ports (100 pts) · Successful STARTTLS negotiation (80 pts) · Plaintext fallback (0 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 8314 §3 / RFC 3207 / RFC 3501</td>
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Forward Secrecy</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>10%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  ECDHE ephemeral key exchange (100 pts) · DHE (80 pts) · Static RSA key exchange without PFS (0 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 9325 §4.2 / NIST SP 800-52r2</td>
+              </tr>
+              <tr>
+                <td style={{ color: 'var(--text-primary)', fontWeight: 700 }}>Protocol Hygiene</td>
+                <td style={{ color: 'var(--accent-cyan)', fontWeight: 700 }}>10%</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  ALPN, SNI, Extended Master Secret (100 pts) · Downgrade/stripping, buffer injection anomalies (0 pts)
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 8446 / RFC 7627 / Poddebniak et al.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Section 3: Evidence-Aware Dynamic Renormalization ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+            3. Evidence-Aware Dynamic Weight Renormalization
+          </span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+          Traditional scoring engines penalize unobserved dimensions with 0 or assign optimistic default scores (e.g. 50%).
+          CryptoPosture solves this with dynamic evidence-aware weight renormalization: unobserved or inconclusive dimensions
+          receive 0% effective weight, and observed dimensions scale proportionally so that their effective weights strictly sum to 100%.
+        </p>
+
+        <div className="audit-cards-grid">
+          <div className="audit-card">
+            <div className="audit-card-label">Dynamic Effective Weight Formula</div>
+            <div className="audit-card-formula">
+              w_i^eff = w_i / ∑_(j ∈ assessed) w_j
+            </div>
+            <div className="audit-card-desc">
+              Only dimensions with forensic proof are evaluated. Unobserved dimensions have <code>w_i^eff = 0</code>.
+            </div>
+          </div>
+
+          <div className="audit-card">
+            <div className="audit-card-label">Renormalized Base Score</div>
+            <div className="audit-card-formula">
+              S_renorm = ∑_(i ∈ assessed) w_i^eff · S_i
+            </div>
+            <div className="audit-card-desc">
+              Maintains full 100-point scale parity regardless of whether 3, 5, or all 6 dimensions are visible.
+            </div>
+          </div>
+
+          <div className="audit-card">
+            <div className="audit-card-label">Evidence Provenance Guarantee</div>
+            <div className="audit-card-desc" style={{ marginTop: 6, fontSize: '0.82rem' }}>
+              Prevents blind penalties on non-mail flows or implicit TLS sessions where STARTTLS is intentionally absent,
+              while documenting exact component coverage in forensic metadata.
+            </div>
           </div>
         </div>
       </div>
 
-      {sessionContribs.length > 0 && (
-        <div style={{ marginTop: 16 }}>
-          <div style={{ fontWeight: 600, fontSize: '0.76rem', color: 'var(--text-secondary)', marginBottom: 10 }}>
-            Per-Session Traffic Volume & Enterprise Score Contribution
+      {/* ── Section 4: Non-Additive Critical Score Caps ── */}
+      <div style={{ marginBottom: 28 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--risk-critical)' }}>
+            4. Non-Additive Critical Score Caps (Floor & Ceiling Enforcement)
+          </span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+          Subtractive penalty deductions can produce inconsistent results when compounded or diluted.
+          To guarantee that catastrophic vulnerabilities cannot be masked by strong scores in other dimensions,
+          the engine applies non-additive score caps:
+        </p>
+
+        <div style={{
+          background: 'rgba(239, 68, 68, 0.06)',
+          border: '1px solid rgba(239, 68, 68, 0.25)',
+          borderRadius: 'var(--radius-md)',
+          padding: '12px 16px',
+          marginBottom: 14,
+          fontFamily: 'var(--font-mono)',
+          fontSize: '0.92rem',
+          color: 'var(--text-primary)',
+        }}>
+          <strong>Final Session Score:</strong> <code>S_final = min(S_renorm, Cap_min)</code>
+        </div>
+
+        <div className="audit-table-wrap">
+          <table className="audit-table">
+            <thead>
+              <tr>
+                <th>Trigger Condition</th>
+                <th>Cap Ceiling</th>
+                <th>Forensic & Security Rationale</th>
+                <th>Authority Reference</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style={{ color: '#ff6b6b', fontWeight: 700 }}>Plaintext Mail / Cleartext Auth</td>
+                <td style={{ color: 'var(--risk-critical)', fontWeight: 800 }}>Cap ≤ 0.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Total confidentiality compromise: credentials, mail content, or session tokens exposed in cleartext
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 8314 §3</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#ff6b6b', fontWeight: 700 }}>Prohibited SSLv2 / SSLv3 Active</td>
+                <td style={{ color: 'var(--risk-critical)', fontWeight: 800 }}>Cap ≤ 15.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Cryptographically broken protocols vulnerable to POODLE, DROWN, and rollback attacks
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 8996</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#ff6b6b', fontWeight: 700 }}>Buffer Injection Exploit Detected</td>
+                <td style={{ color: 'var(--risk-critical)', fontWeight: 800 }}>Cap ≤ 15.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Active command pipelining exploit across the cleartext/TLS boundary
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>Poddebniak et al. USENIX '21</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#ff6b6b', fontWeight: 700 }}>STARTTLS Stripping Downgrade</td>
+                <td style={{ color: 'var(--risk-critical)', fontWeight: 800 }}>Cap ≤ 15.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Active MitM attack tampering with protocol capabilities to force cleartext transmission
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 3207 / RFC 8314</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#fb923c', fontWeight: 700 }}>Prohibited / Null / Export Cipher</td>
+                <td style={{ color: 'var(--risk-critical)', fontWeight: 800 }}>Cap ≤ 20.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Cryptographically void encryption (RC4, 3DES, EXPORT, NULL) susceptible to plaintext recovery
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>NIST SP 800-52r2 §3.3.1</td>
+              </tr>
+              <tr>
+                <td style={{ color: '#fbbf24', fontWeight: 700 }}>Invalid / Self-Signed / Expired Cert</td>
+                <td style={{ color: 'var(--risk-medium)', fontWeight: 800 }}>Cap ≤ 60.0</td>
+                <td style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', fontFamily: 'inherit' }}>
+                  Trust chain invalidation prevents mutual authentication and opens channel to interception
+                </td>
+                <td style={{ fontSize: '0.78rem', color: 'var(--accent-blue)' }}>RFC 5280 / NIST SP 800-57</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── Section 5: Calibrated Risk Tiers ── */}
+      <div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+          <span style={{ fontSize: '0.92rem', fontWeight: 700, color: 'var(--accent-blue)' }}>
+            5. Calibrated Risk Tier Thresholds
+          </span>
+        </div>
+        <p style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', marginBottom: 14, lineHeight: 1.5 }}>
+          Final posture indices map to four operational risk tiers calibrated against NIST and BCP 195 compliance targets:
+        </p>
+
+        <div className="audit-cards-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(210px, 1fr))' }}>
+          <div className="audit-card" style={{ borderLeft: '3px solid var(--risk-low)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="risk-pill risk-pill--LOW">LOW RISK</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--risk-low)' }}>80.0 – 100.0</span>
+            </div>
+            <div className="audit-card-desc" style={{ marginTop: 4, fontSize: '0.80rem' }}>
+              Full compliance with modern RFC 9325 & NIST SP 800-52r2 standards. AEAD ciphers, PFS, and valid PKI chain.
+            </div>
           </div>
-          <div className="audit-table-wrap">
-            <table className="audit-table">
-              <thead>
-                <tr>
-                  <th>Flow</th>
-                  <th>Protocol</th>
-                  <th>Byte Volume</th>
-                  <th>Traffic %</th>
-                  <th>Score</th>
-                  <th>Risk Tier</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sessionContribs.map((c, i) => (
-                  <tr key={i}>
-                    <td style={{ color: 'var(--text-primary)' }}>{c.flow || c.session_id}</td>
-                    <td style={{ color: 'var(--accent-blue)', fontWeight: 700 }}>{c.protocol}</td>
-                    <td>{(c.byte_count || 0).toLocaleString()} B</td>
-                    <td>{(c.volume_percent || 0).toFixed(1)}%</td>
-                    <td style={{
-                      fontWeight: 700,
-                      color: c.posture_score >= 80 ? 'var(--risk-low)' : c.posture_score >= 55 ? 'var(--risk-medium)' : c.posture_score >= 30 ? 'var(--risk-high)' : 'var(--risk-critical)',
-                    }}>
-                      {c.posture_score?.toFixed(1)}
-                    </td>
-                    <td>
-                      <span className={`risk-pill risk-pill--${c.risk_tier}`} style={{ fontSize: '0.55rem', padding: '1px 6px' }}>
-                        {c.risk_tier}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+
+          <div className="audit-card" style={{ borderLeft: '3px solid var(--risk-medium)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="risk-pill risk-pill--MEDIUM">MEDIUM RISK</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--risk-medium)' }}>55.0 – 79.9</span>
+            </div>
+            <div className="audit-card-desc" style={{ marginTop: 4, fontSize: '0.80rem' }}>
+              Operational encryption with minor gaps (e.g. CBC ciphers, self-signed certificates, or legacy TLS 1.2 setups).
+            </div>
+          </div>
+
+          <div className="audit-card" style={{ borderLeft: '3px solid var(--risk-high)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="risk-pill risk-pill--HIGH">HIGH RISK</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--risk-high)' }}>30.0 – 54.9</span>
+            </div>
+            <div className="audit-card-desc" style={{ marginTop: 4, fontSize: '0.80rem' }}>
+              Major security defects or deprecated protocols (e.g. TLS 1.0/1.1, missing forward secrecy, expired certs).
+            </div>
+          </div>
+
+          <div className="audit-card" style={{ borderLeft: '3px solid var(--risk-critical)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="risk-pill risk-pill--CRITICAL">CRITICAL RISK</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--risk-critical)' }}>0.0 – 29.9</span>
+            </div>
+            <div className="audit-card-desc" style={{ marginTop: 4, fontSize: '0.80rem' }}>
+              Catastrophic vulnerabilities: cleartext traffic, SSLv2/v3, buffer injection exploits, or active downgrade attacks.
+            </div>
           </div>
         </div>
-      )}
+      </div>
     </div>
   )
 }

@@ -25,7 +25,14 @@ if str(_root) not in sys.path:
 
 from core.pipeline import analyze_pcap
 from core.report_exporter import export_json, export_html
-from generator.pcap_generator import generate_all, DEFAULT_OUTPUT_DIR, SCENARIO_GENERATORS, _SAMPLE_DESCRIPTIONS  # noqa
+from generator.pcap_generator import (  # noqa
+    generate_all,
+    generate_enterprise_simulations,
+    DEFAULT_OUTPUT_DIR,
+    SCENARIO_GENERATORS,
+    ENTERPRISE_GENERATORS,
+    _SAMPLE_DESCRIPTIONS,
+)
 
 # ---------------------------------------------------------------------------
 # Page config
@@ -98,7 +105,12 @@ st.markdown("""
   /* Expander */
   [data-testid="stExpander"] {
     background: #0f0f1e;
-    border: 1px solid #1e1e3e;
+    border: 1px solid #1e1e3e !important;
+    border-radius: 12px !important;
+  }
+
+  /* Success box */
+  .stAlert {
     border-radius: 10px;
   }
 
@@ -127,6 +139,12 @@ RISK_COLORS = {
     "HIGH":     "#ff9500",
     "MEDIUM":   "#ffe066",
     "LOW":      "#00d68f",
+}
+
+ENTERPRISE_DESCRIPTIONS = {
+    "enterprise_network_simulation": "🏢 Enterprise Perimeter (16 Flows, 119 Pkts) — Corporate mail gateway simulation spanning multiple departments (Exec, Eng with PQC, HR, Finance, MTA), legacy 3DES, expired certs, cleartext stripping, and buffer injection.",
+    "mitm_attack_campaign": "🚨 MitM Attack Campaign (6 Flows, 46 Pkts) — Adversarial active attack scenario with cleartext credential theft, buffer injection exfiltration, TLS 1.0 downgrade, and phishing gateway with untrusted cert & SNI mismatch.",
+    "cloud_migration_audit": "☁️ Hybrid Cloud Migration Audit (8 Flows, 63 Pkts) — Cloud migration exposure assessing modern SaaS (M365/Workspace TLS 1.3/PQC) vs legacy on-prem Exchange, unencrypted ERP, and shadow IT.",
 }
 
 SAMPLE_DESCRIPTIONS = {
@@ -176,13 +194,21 @@ def _score_gauge(score: float, size: int = 80) -> str:
 
 def _ensure_samples():
     SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
-    missing = any(
+    missing_bench = any(
         not (SAMPLE_DIR / f"{name}.pcap").exists()
         for name in SCENARIO_GENERATORS
     )
-    if missing:
+    if missing_bench:
         with st.spinner("⚙️ Generating synthetic demo PCAPs..."):
             generate_all(SAMPLE_DIR)
+
+    missing_ent = any(
+        not (SAMPLE_DIR / f"{name}.pcap").exists()
+        for name in ENTERPRISE_GENERATORS
+    )
+    if missing_ent:
+        with st.spinner("🏢 Synthesizing multi-session network captures..."):
+            generate_enterprise_simulations(SAMPLE_DIR)
 
 
 def _run_analysis(filepath: str, filename: str = "") -> None:
@@ -234,22 +260,39 @@ with st.sidebar:
 
     st.divider()
 
-    # Sample PCAP selector
-    st.markdown("### 🧪 Demo PCAPs")
+    # Enterprise Multi-Session Simulations
+    st.markdown("### 🏢 Multi-Session Simulations")
+    st.caption("Realistic multi-flow traffic captures across corporate departments, attacks, and hybrid migrations.")
     _ensure_samples()
 
-    for name, desc in SAMPLE_DESCRIPTIONS.items():
+    sim_icons = {
+        "enterprise_network_simulation": "🏢",
+        "mitm_attack_campaign": "🚨",
+        "cloud_migration_audit": "☁️",
+    }
+    for name, desc in ENTERPRISE_DESCRIPTIONS.items():
         path = SAMPLE_DIR / f"{name}.pcap"
-        label = name.replace("_", " ").title()
-        if st.button(f"{label}", key=f"sample_{name}", use_container_width=True, help=desc):
+        icon = sim_icons.get(name, "📁")
+        label = f"{icon} {name.replace('_', ' ').title()}"
+        if st.button(label, key=f"sim_{name}", use_container_width=True, help=desc):
             _run_analysis(str(path), filename=f"{name}.pcap")
+
+    # Unit Test Benchmarks Expander
+    with st.expander("🧪 Ground-Truth Unit Fixtures (Single-Flow)", expanded=False):
+        st.caption("Controlled single-session fixtures for deterministic RFC/NIST validation.")
+        for name, desc in SAMPLE_DESCRIPTIONS.items():
+            path = SAMPLE_DIR / f"{name}.pcap"
+            label = name.replace("_", " ").title()
+            if st.button(f"{label}", key=f"sample_{name}", use_container_width=True, help=desc):
+                _run_analysis(str(path), filename=f"{name}.pcap")
 
     st.divider()
 
-    if st.button("🔄 Regenerate Demo PCAPs", use_container_width=True):
-        with st.spinner("Generating..."):
+    if st.button("🔄 Regenerate All PCAPs", use_container_width=True):
+        with st.spinner("Generating fixtures and enterprise captures..."):
             generate_all(SAMPLE_DIR)
-        st.success("✅ Demo PCAPs regenerated!")
+            generate_enterprise_simulations(SAMPLE_DIR)
+        st.success("✅ All PCAPs successfully regenerated!")
 
     st.markdown("""
     <div style="position:fixed;bottom:12px;left:0;right:0;text-align:center;color:#333;font-size:0.7em;padding:0 10px;">
@@ -287,13 +330,15 @@ if st.session_state.summary is None:
         """)
     with col2:
         st.markdown("""
-        **📊 Scoring Model**
-        - TLS Version (weight 0.25)
-        - Cipher Suite (weight 0.20)
-        - Certificate Health (0.20)
-        - STARTTLS Transition (0.15)
-        - Forward Secrecy (0.10)
-        - Protocol Context (0.10)
+        **📊 Scoring Model (`crypto-posture-v1`)**
+        - TLS Version (base weight 0.25)
+        - Cipher Suite (base weight 0.20)
+        - Certificate Health (base 0.20)
+        - STARTTLS Transition (base 0.15)
+        - Forward Secrecy (base 0.10)
+        - Protocol Context (base 0.10)
+        - *Evidence-Aware Dynamic Renormalization*
+        - *Non-Additive Critical Score Caps*
         """)
     with col3:
         st.markdown("""
@@ -464,9 +509,18 @@ else:
                 | Buffer Inject | `{'YES ⚠️' if s.get('buffer_injection_detected') else 'No'}` |
                 """)
 
+            # Critical Caps Alert
+            caps = s.get("critical_caps_applied", [])
+            for cap in caps:
+                st.error(
+                    f"⚠️ **SCORE CAPPED AT {cap['cap_value']:.0f}/100**: {cap['finding']} — {cap['reason']} "
+                    f"*(Ref: {cap.get('reference','')})*"
+                )
+
             # Component score bars
-            st.markdown("**📊 Component Scores**")
+            st.markdown("**📊 Component Scores (Evidence-Aware Dynamic Renormalization)**")
             cs = s.get("component_scores", {})
+            expl_map = {c["component"]: c for c in s.get("component_explanations", [])}
             bar_cols = st.columns(6)
             labels = [
                 ("TLS Version", "tls_version"),
@@ -478,7 +532,17 @@ else:
             ]
             for col, (label, key) in zip(bar_cols, labels):
                 val = cs.get(key, 0)
-                col.metric(label, f"{val:.0f}")
+                c_expl = expl_map.get(key)
+                if c_expl and c_expl.get("effective_weight") is not None:
+                    eff_pct = c_expl["effective_weight"] * 100
+                    contrib = c_expl.get("effective_contribution", 0)
+                    col.metric(label, f"{val:.0f}", f"{eff_pct:.0f}% wt (+{contrib:.1f})")
+                else:
+                    col.metric(label, f"{val:.0f}")
+
+            se = s.get("scoring_explanation", {})
+            if se.get("evidence_note"):
+                st.caption(f"ℹ️ {se['evidence_note']}")
 
             # Violations
             violations = s.get("violations", [])

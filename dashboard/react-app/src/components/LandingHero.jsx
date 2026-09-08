@@ -1,6 +1,11 @@
 import { useRef, useState, useEffect } from 'react'
 
 const SAMPLES = [
+  // Multi-Session Enterprise & Adversarial Simulations
+  { name: 'enterprise_network_simulation', tierCategory: 'enterprise', tierNum: 'SIM', label: 'Enterprise Perimeter (16 Flows)', tier: 'CRITICAL', meta: '16 Flows · 119 Pkts · PQC & Legacy', desc: 'Enterprise gateway with PQC TLS 1.3, legacy 3DES, expired certs, and buffer injection' },
+  { name: 'mitm_attack_campaign',          tierCategory: 'enterprise', tierNum: 'SIM', label: 'MitM Attack Campaign (6 Flows)',   tier: 'CRITICAL', meta: '6 Flows · 46 Pkts · Active Adversary',  desc: 'Active adversary performing stripping, credential exfiltration, and TLS downgrade' },
+  { name: 'cloud_migration_audit',         tierCategory: 'enterprise', tierNum: 'SIM', label: 'Cloud Migration Audit (8 Flows)',  tier: 'CRITICAL', meta: '8 Flows · 63 Pkts · Hybrid Cloud',      desc: 'Hybrid cloud migration exposing shadow IT, legacy on-prem Exchange, and cleartext ERP' },
+
   // Tier 1: Deterministic Synthetic Fixtures
   { name: 'clean_implicit_tls',          tierCategory: 'tier1', tierNum: 'T1', label: 'Clean implicit TLS',    tier: 'LOW',      meta: 'IMAPS · TLS 1.3 · ECDHE',       desc: 'Baseline healthy session (score ~100)' },
   { name: 'weak_cipher_starttls',        tierCategory: 'tier1', tierNum: 'T1', label: 'Weak cipher STARTTLS',  tier: 'HIGH',     meta: 'SMTP · TLS 1.0 · 3DES',         desc: 'Deprecated cipher negotiated (score ~30–55)' },
@@ -42,12 +47,11 @@ const FEATURE_CARDS = [
     title: 'How it scores (crypto-posture-v1)',
     accent: 'violet',
     items: [
-      'TLS Version — weight 25%',
-      'Cipher Suite — weight 20%',
-      'Certificate Health — weight 20%',
-      'STARTTLS Transition — weight 15%',
-      'Forward Secrecy — weight 10%',
-      'Protocol Context — weight 10%',
+      '6 Calibrated Weights (TLS 25%, Cipher 20%, Cert 20%, STARTTLS 15%, FS 10%, Proto 10%)',
+      'Dynamic Evidence Renormalization (w_i_eff = w_i / ∑w_j)',
+      'Unobserved dimensions zero-weighted (no blind penalization)',
+      'Non-additive critical score caps (Plaintext=0, Downgrade=15, Broken Cipher=20)',
+      'Harmonic mean enterprise aggregation (Weakest-Link Principle)',
     ],
   },
   {
@@ -264,11 +268,11 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
           <div>
             <div className="hero-eyebrow demo-eyebrow">
               <span className="sandbox-badge">SANDBOX</span>
-              CURATED EVIDENCE BENCHMARK (15 PCAPS)
+              CURATED EVIDENCE & SIMULATION LIBRARY (18 PCAPS)
             </div>
             <h2>Explore a known scenario</h2>
           </div>
-          <p>Ground-truth benchmark corpus across three forensic tiers.<br />
+          <p>Multi-session enterprise simulations & ground-truth benchmark corpus across three forensic tiers.<br />
             <span className="demo-click-hint">↙ Click any card to run deep packet inspection</span>
           </p>
         </div>
@@ -277,6 +281,7 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
         <div className="filter-bar" style={{ marginBottom: 16 }}>
           {[
             { id: 'all', label: 'All PCAPs', count: SAMPLES.length },
+            { id: 'enterprise', label: 'Multi-Session Simulations', count: 3 },
             { id: 'tier1', label: 'Tier 1: Synthetic Fixtures', count: 5 },
             { id: 'tier2', label: 'Tier 2: Real Lab Captures', count: 3 },
             { id: 'tier3', label: 'Tier 3: Adversarial Edge Cases', count: 7 },

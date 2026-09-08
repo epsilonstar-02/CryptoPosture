@@ -67,18 +67,26 @@ function ScoringExplanationPanel({ explanation }) {
     protocol_context: 'Protocol Context',
   }
 
+  const completeness = expl.evidence_completeness_ratio ?? 1.0
+  const isRenormalized = completeness > 0 && completeness < 0.999
+  const renormScore = expl.renormalized_quality_score ?? expl.quality_score ?? expl.final_score
+  const rawQuality = expl.quality_score ?? renormScore
+  const finalScore = expl.final_score ?? renormScore
+  const assessedCount = expl.assessed_component_count ?? components.filter(c => ['PASS', 'DEGRADED', 'VIOLATION'].includes(c.assessment)).length
+
   return (
     <div style={{
       background: 'var(--bg-panel)',
       border: '1px solid var(--border-dim)',
       borderRadius: 8,
-      padding: '14px 16px',
+      padding: '16px 18px',
       marginBottom: 16,
     }}>
+      {/* Top Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Cryptographic Posture Component Breakdown
+          <span style={{ fontSize: '0.86rem', fontWeight: 700, color: 'var(--text-primary)' }}>
+            Cryptographic Posture Scoring Engine (Evidence-Aware Audit)
           </span>
           <span style={{
             fontSize: '0.65rem',
@@ -91,11 +99,110 @@ function ScoringExplanationPanel({ explanation }) {
             {expl.policy_id} v{expl.policy_version}
           </span>
         </div>
-        <div style={{ fontSize: '0.72rem', color: confColor, fontWeight: 600 }}>
-          Confidence: <strong>{conf}</strong>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{
+            fontSize: '0.65rem',
+            padding: '2px 8px',
+            borderRadius: 4,
+            background: completeness >= 0.8 ? 'rgba(34,197,94,0.1)' : 'rgba(234,179,8,0.1)',
+            color: completeness >= 0.8 ? 'var(--risk-low)' : 'var(--risk-medium)',
+            fontFamily: 'var(--font-mono)',
+            fontWeight: 700,
+            border: `1px solid ${completeness >= 0.8 ? 'rgba(34,197,94,0.25)' : 'rgba(234,179,8,0.25)'}`,
+          }}>
+            {(completeness * 100).toFixed(0)}% EVIDENCE ASSESSED ({assessedCount}/6 DIMENSIONS)
+          </span>
+          <div style={{ fontSize: '0.72rem', color: confColor, fontWeight: 600 }}>
+            Confidence: <strong>{conf}</strong>
+          </div>
         </div>
       </div>
 
+      {/* Step-by-Step Scoring Reconciliation Banner */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))',
+        gap: 8,
+        background: 'rgba(0,0,0,0.25)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        borderRadius: 6,
+        padding: '10px 12px',
+        marginBottom: 14,
+        fontSize: '0.72rem',
+      }}>
+        <div>
+          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.05em' }}>
+            1. Raw Base Sum
+          </span>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 700, color: 'var(--text-primary)', marginTop: 2 }}>
+            {rawQuality?.toFixed(1)} <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>/ 100</span>
+          </div>
+          <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>Static policy weights sum</div>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.05em' }}>
+            2. Renormalized Quality Score
+          </span>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.88rem', fontWeight: 700, color: isRenormalized ? 'var(--accent-cyan)' : 'var(--text-primary)', marginTop: 2 }}>
+            {renormScore?.toFixed(1)} <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>/ 100</span>
+          </div>
+          <div style={{ fontSize: '0.64rem', color: isRenormalized ? 'var(--accent-cyan)' : 'var(--text-muted)' }}>
+            {isRenormalized ? `Dynamic scaled over ${assessedCount} assessed` : 'Full 100% evidence coverage'}
+          </div>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.05em' }}>
+            3. Critical Floor / Cap
+          </span>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.88rem',
+            fontWeight: 700,
+            color: caps.length > 0 ? 'var(--risk-critical)' : 'var(--risk-low)',
+            marginTop: 2,
+          }}>
+            {caps.length > 0 ? `CAPPED @ ${Math.min(...caps.map(c => c.cap_value)).toFixed(1)}` : 'NONE APPLIED'}
+          </div>
+          <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>
+            {caps.length > 0 ? `${caps[0].finding}` : 'Non-punitive; no severe breach'}
+          </div>
+        </div>
+
+        <div>
+          <span style={{ color: 'var(--text-muted)', textTransform: 'uppercase', fontSize: '0.62rem', letterSpacing: '0.05em' }}>
+            4. Final Posture Index
+          </span>
+          <div style={{
+            fontFamily: 'var(--font-mono)',
+            fontSize: '0.88rem',
+            fontWeight: 800,
+            color: finalScore >= 80 ? 'var(--risk-low)' : finalScore >= 55 ? 'var(--risk-medium)' : finalScore >= 30 ? 'var(--risk-high)' : 'var(--risk-critical)',
+            marginTop: 2,
+          }}>
+            {finalScore?.toFixed(1)} <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>/ 100 · {expl.risk_tier}</span>
+          </div>
+          <div style={{ fontSize: '0.64rem', color: 'var(--text-muted)' }}>min(QualityScore, CriticalCap)</div>
+        </div>
+      </div>
+
+      {/* Evidence Note Banner if incomplete */}
+      {expl.evidence_note && (
+        <div style={{
+          background: isRenormalized ? 'rgba(61,216,232,0.06)' : 'rgba(255,255,255,0.02)',
+          borderLeft: `3px solid ${isRenormalized ? 'var(--accent-cyan)' : 'var(--accent-blue)'}`,
+          borderRadius: 4,
+          padding: '8px 12px',
+          marginBottom: 12,
+          fontSize: '0.72rem',
+          color: 'var(--text-secondary)',
+        }}>
+          <strong style={{ color: isRenormalized ? 'var(--accent-cyan)' : 'var(--accent-blue)' }}>Evidence Completeness Rationale:</strong> {expl.evidence_note}
+        </div>
+      )}
+
+      {/* Critical Caps Banner */}
       {caps.length > 0 && (
         <div style={{ marginBottom: 12 }}>
           {caps.map((cap, idx) => (
@@ -108,14 +215,14 @@ function ScoringExplanationPanel({ explanation }) {
               fontSize: '0.76rem',
             }}>
               <div style={{ color: 'var(--risk-critical)', fontWeight: 700 }}>
-                ⚠ CRITICAL SCORE CAP: Capped at {cap.cap_value?.toFixed(1)}/100
+                ⚠ CRITICAL SCORE CEILING: Capped at {cap.cap_value?.toFixed(1)}/100
               </div>
               <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
                 <strong>{cap.finding}</strong> — {cap.reason}
               </div>
               {cap.reference && (
                 <div style={{ color: 'var(--accent-cyan)', fontSize: '0.7rem', marginTop: 2 }}>
-                  Standard ref: {cap.reference}
+                  Standard reference: {cap.reference}
                 </div>
               )}
             </div>
@@ -123,20 +230,27 @@ function ScoringExplanationPanel({ explanation }) {
         </div>
       )}
 
+      {/* Component Dimensions Breakdown */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {components.map((c, i) => {
           const style = statusColors[c.assessment] || statusColors.PASS
+          const isAssessed = ['PASS', 'DEGRADED', 'VIOLATION'].includes(c.assessment)
+          const baseWeight = c.weight
+          const effectiveWeight = c.effective_weight ?? (isAssessed && completeness > 0 ? (c.weight / completeness) : 0)
+          const effectiveContrib = c.effective_contribution ?? (c.component_score * effectiveWeight)
+          const isWeightAdjusted = isAssessed && Math.abs(effectiveWeight - baseWeight) > 0.001
+
           return (
             <div key={i} style={{
               display: 'flex',
               flexDirection: 'column',
-              padding: '8px 10px',
+              padding: '10px 12px',
               background: 'rgba(255,255,255,0.02)',
               borderRadius: 6,
               border: '1px solid rgba(255,255,255,0.04)',
               fontSize: '0.75rem',
             }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, flexWrap: 'wrap', gap: 6 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                     {nameMap[c.component] || c.component}
@@ -153,13 +267,38 @@ function ScoringExplanationPanel({ explanation }) {
                     {c.assessment}
                   </span>
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', color: 'var(--text-muted)', fontSize: '0.72rem' }}>
-                  {c.component_score?.toFixed(0)} × {(c.weight * 100).toFixed(0)}% = <strong style={{ color: 'var(--text-primary)' }}>{c.contribution?.toFixed(1)}</strong>
+
+                {/* Mathematical Formula Representation */}
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.72rem', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {isAssessed ? (
+                    <>
+                      <span style={{ color: 'var(--text-muted)' }}>
+                        {c.component_score?.toFixed(0)} ×&nbsp;
+                        {isWeightAdjusted ? (
+                          <span style={{ color: 'var(--accent-cyan)', fontWeight: 600 }} title={`Renormalized from base ${(baseWeight * 100).toFixed(0)}% due to ${(completeness * 100).toFixed(0)}% evidence completeness`}>
+                            {(effectiveWeight * 100).toFixed(1)}% <small style={{ color: 'var(--text-muted)' }}>(base {(baseWeight * 100).toFixed(0)}%)</small>
+                          </span>
+                        ) : (
+                          <span>{(baseWeight * 100).toFixed(0)}%</span>
+                        )}
+                        &nbsp;=
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)' }}>
+                        +{effectiveContrib?.toFixed(1)}
+                      </strong>
+                    </>
+                  ) : (
+                    <span style={{ color: 'var(--text-muted)' }}>
+                      0.0 <span style={{ color: '#60a5fa' }}>(base {(baseWeight * 100).toFixed(0)}% excluded from score)</span>
+                    </span>
+                  )}
                 </div>
               </div>
+
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.72rem', marginTop: 2 }}>
                 <span style={{ color: 'var(--text-muted)' }}>Observed:</span> <code style={{ color: 'var(--accent-cyan)' }}>{c.observed}</code> — {c.reason}
               </div>
+
               {c.references && c.references.length > 0 && (
                 <div style={{ color: 'var(--accent-blue)', fontSize: '0.68rem', marginTop: 2 }}>
                   Standard basis: {c.references.join(', ')}

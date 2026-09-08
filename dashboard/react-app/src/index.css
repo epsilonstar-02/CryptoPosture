@@ -1090,13 +1090,32 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 }
 
 .loading-progress {
-  width: 180px;
-  height: 2px;
-  background: var(--border-dim);
+  width: 280px;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.08);
   border-radius: 99px;
   overflow: hidden;
-  margin-bottom: 20px;
+  margin-bottom: 8px;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.3);
 }
+
+.loading-progress-meta {
+  width: 280px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font: 600 0.78rem var(--font-mono);
+  color: var(--text-muted);
+  margin-bottom: 18px;
+  letter-spacing: 0.04em;
+}
+.loading-progress-pct {
+  color: var(--accent-blue);
+}
+.loading-progress-time {
+  color: var(--text-secondary);
+}
+
 /* Complete state — radar turns green */
 .loading-radar--complete {
   border-color: var(--border-mid);
@@ -1116,9 +1135,13 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 /* Progress bar snaps to 100% and turns green */
 .loading-progress-bar--complete {
   animation: none;
-  width: 100%;
+  width: 100% !important;
   background: linear-gradient(90deg, var(--accent-green), #38c9a0);
-  transition: background 0.3s ease;
+  box-shadow: 0 0 12px rgba(80, 233, 177, 0.5);
+  transition: width 0.25s ease-out, background 0.3s ease;
+}
+.loading-progress-bar--complete::after {
+  display: none;
 }
 
 /* Title turns green in complete phase */
@@ -1135,6 +1158,10 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   letter-spacing: 0.02em;
 }
 .loading-step--active  { color: var(--accent-blue); }
+.loading-step--active .loading-step-icon {
+  display: inline-block;
+  animation: pulse-step 0.9s ease-in-out infinite;
+}
 .loading-step--done    { color: var(--accent-green); }
 .loading-step-icon { width: 14px; flex-shrink: 0; text-align: center; }
 
@@ -1150,6 +1177,7 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   font: 500 0.95rem var(--font-mono);
   color: var(--text-secondary);
   margin-bottom: 16px;
+  min-height: 1.4em;
 }
 
 /* ─── Loading progress bar (base) ─── */
@@ -1157,7 +1185,17 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-violet));
   border-radius: 99px;
-  animation: progress-fill 2.2s ease-in-out forwards;
+  transition: width 0.15s ease-out;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 0 10px rgba(61, 216, 232, 0.45);
+}
+.loading-progress-bar::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; bottom: 0; right: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  animation: progress-shimmer 1.8s infinite;
 }
 
 /* ─── Landing Hero ─── */
@@ -1635,6 +1673,16 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   70%  { width: 75%; }
   90%  { width: 88%; }
   100% { width: 95%; }
+}
+
+@keyframes progress-shimmer {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(200%); }
+}
+
+@keyframes pulse-step {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(1.3); opacity: 0.65; }
 }
 
 @keyframes count-up {
