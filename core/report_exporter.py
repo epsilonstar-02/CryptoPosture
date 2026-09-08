@@ -413,6 +413,8 @@ def _scoring_explanation_html(s: dict) -> str:
     }
 
     rows = []
+    comp_ratio = expl.get("evidence_completeness_ratio", 1.0)
+    ev_note = expl.get("evidence_note", "")
     for comp in expl.get("components", []):
         c_raw = comp.get("component")
         c_name = _e(name_map.get(c_raw, c_raw))
@@ -423,8 +425,16 @@ def _scoring_explanation_html(s: dict) -> str:
         obs = _e(comp.get("observed", "—"))
         score_val = float(comp.get("component_score", 0.0))
         weight_val = float(comp.get("weight", 0.0))
-        contrib_val = float(comp.get("contribution", 0.0))
+        eff_weight_val = float(comp.get("effective_weight", weight_val))
+        contrib_val = float(comp.get("effective_contribution", comp.get("contribution", 0.0)))
         reason = _e(comp.get("reason", ""))
+
+        if status in ("INCONCLUSIVE", "NOT_APPLICABLE"):
+            weight_text = f'{score_val:.0f} × 0% <span style="color:#666;">(base {weight_val*100:.0f}%, excluded)</span> = <strong style="color:#666;">0.0</strong>'
+        elif abs(eff_weight_val - weight_val) > 0.001:
+            weight_text = f'{score_val:.0f} × {eff_weight_val*100:.1f}% <span style="color:#7b9bff;">(base {weight_val*100:.0f}%)</span> = <strong style="color:#e0e0ff;">{contrib_val:.1f}</strong>'
+        else:
+            weight_text = f'{score_val:.0f} × {weight_val*100:.0f}% = <strong style="color:#e0e0ff;">{contrib_val:.1f}</strong>'
 
         rows.append(
             f'<tr style="border-bottom:1px solid #1a1a36;">'
@@ -432,7 +442,7 @@ def _scoring_explanation_html(s: dict) -> str:
             f'<td style="padding:6px 8px;color:#e0e0ff;font-family:monospace;font-size:0.85em;">{obs}</td>'
             f'<td style="padding:6px 8px;">{badge}</td>'
             f'<td style="padding:6px 8px;font-family:monospace;font-size:0.85em;color:#aaa;">'
-            f'{score_val:.0f} × {weight_val*100:.0f}% = <strong style="color:#e0e0ff;">{contrib_val:.1f}</strong>'
+            f'{weight_text}'
             f'</td>'
             f'<td style="padding:6px 8px;font-size:0.8em;color:#aaa;">{reason}<br><span style="color:#7b9bff;font-size:0.85em;">{refs}</span></td>'
             f'</tr>'
@@ -443,6 +453,8 @@ def _scoring_explanation_html(s: dict) -> str:
     conf_badge = _confidence_badge(conf)
     pol_id = _e(expl.get("policy_id") or "crypto-posture-v1")
     pol_ver = _e(expl.get("policy_version") or "1.0")
+
+    note_html = f'<div style="background:#0a0a20;border-left:3px solid #7b9bff;padding:6px 10px;border-radius:4px;font-size:0.8em;color:#a0b0ff;margin-bottom:10px;">ℹ <strong>Evidence Coverage ({comp_ratio*100:.0f}% assessable):</strong> {_e(ev_note)}</div>' if ev_note else ''
 
     return f"""
     <details style="margin-top:14px;background:#080816;border:1px solid #1e1e44;border-radius:8px;padding:12px 16px;">
@@ -455,6 +467,7 @@ def _scoring_explanation_html(s: dict) -> str:
       </summary>
       <div style="margin-top:12px;">
         {cap_html}
+        {note_html}
         <table style="width:100%;border-collapse:collapse;font-size:0.85em;margin-top:8px;">
           <thead>
             <tr style="border-bottom:1px solid #2a2a5e;color:#888;text-align:left;">
@@ -470,7 +483,7 @@ def _scoring_explanation_html(s: dict) -> str:
           </tbody>
         </table>
         <div style="margin-top:10px;font-size:0.75em;color:#666;display:flex;justify-content:space-between;align-items:center;">
-          <span>Mathematical Model: <code>S = min(cap, Σ w_i * S_i - penalties)</code></span>
+          <span>Mathematical Model: <code>S = min(Cap_min, S_renormalized) [Evidence-Aware Dynamic Renormalization &amp; Critical Caps]</code></span>
           <span>Scoring Policy: <code>{pol_id} v{pol_ver}</code></span>
         </div>
       </div>

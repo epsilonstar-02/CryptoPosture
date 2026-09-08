@@ -296,25 +296,36 @@ class FoxIOFingerprintIndex:
     def _iter_json_records(stdout: str) -> Iterable[Dict[str, Any]]:
         """
         Parse both official FoxIO JSON output shapes:
-          * Python implementation: one JSON object per line
-          * Rust implementation: JSON document/array
+          * Python implementation: formatted multi-line JSON documents (concatenated) or JSONL
+          * Rust implementation: single JSON document or array of objects
         """
         text = stdout.strip()
         if not text:
             return
 
-        try:
-            document = json.loads(text)
-            if isinstance(document, dict):
-                yield document
-                return
-            if isinstance(document, list):
-                for item in document:
-                    if isinstance(item, dict):
-                        yield item
-                return
-        except json.JSONDecodeError:
-            pass
+        decoder = json.JSONDecoder()
+        pos = 0
+        parsed_any = False
+        while pos < len(text):
+            while pos < len(text) and text[pos].isspace():
+                pos += 1
+            if pos >= len(text):
+                break
+            try:
+                obj, end = decoder.raw_decode(text, pos)
+                pos = end
+                parsed_any = True
+                if isinstance(obj, dict):
+                    yield obj
+                elif isinstance(obj, list):
+                    for item in obj:
+                        if isinstance(item, dict):
+                            yield item
+            except json.JSONDecodeError:
+                break
+
+        if parsed_any:
+            return
 
         # Python implementation historically emits JSON-lines; keep a strict
         # literal_eval fallback for older builds that print dict reprs.
@@ -412,12 +423,6 @@ class FoxIOFingerprintIndex:
                 self._observations[obs.key] = obs
                 count += 1
 
-            if count == 0:
-                raise FoxIOIntegrationError(
-                    "FoxIO returned no stream records. Check the capture, tshark "
-                    "installation, and FoxIO bundle."
-                )
-
             self._loaded = True
         except (subprocess.TimeoutExpired, OSError, FoxIOIntegrationError) as exc:
             self._load_error = str(exc)
@@ -425,7 +430,10 @@ class FoxIOFingerprintIndex:
 
     def lookup(self, src_ip: str, dst_ip: str, src_port: int, dst_port: int) -> Optional[FoxIOStreamObservation]:
         self.load()
-        return self._observations.get((str(src_ip), str(dst_ip), int(src_port), int(dst_port)))
+        direct = self._observations.get((str(src_ip), str(dst_ip), int(src_port), int(dst_port)))
+        if direct is not None:
+            return direct
+        return self._observations.get((str(dst_ip), str(src_ip), int(dst_port), int(src_port)))
 
 
 def build_fingerprints(

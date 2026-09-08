@@ -384,6 +384,8 @@ class ComponentExplanation:
     reason: str
     references: list[str] = field(default_factory=list)
     confidence: ConfidenceLevel = ConfidenceLevel.HIGH
+    effective_weight: Optional[float] = None
+    effective_contribution: Optional[float] = None
 
     def to_dict(self) -> dict:
         return {
@@ -392,7 +394,9 @@ class ComponentExplanation:
             "assessment": self.assessment.value if isinstance(self.assessment, AssessmentStatus) else str(self.assessment),
             "component_score": round(self.component_score, 2),
             "weight": round(self.weight, 4),
+            "effective_weight": round(self.effective_weight, 4) if self.effective_weight is not None else round(self.weight, 4),
             "contribution": round(self.contribution, 2),
+            "effective_contribution": round(self.effective_contribution, 2) if self.effective_contribution is not None else round(self.contribution, 2),
             "reason": self.reason,
             "references": list(self.references),
             "confidence": self.confidence.value if isinstance(self.confidence, ConfidenceLevel) else str(self.confidence),
@@ -1003,6 +1007,27 @@ class EnterpriseSummary:
             "scoring_policy": {
                 "id":      self.scoring_policy_id,
                 "version": self.scoring_policy_version,
+                "weights": {
+                    "tls_version":         0.25,
+                    "cipher_suite":        0.20,
+                    "cert_health":         0.20,
+                    "starttls_transition": 0.15,
+                    "forward_secrecy":     0.10,
+                    "protocol_context":    0.10,
+                },
+                "risk_thresholds": {
+                    "low":    80.0,
+                    "medium": 55.0,
+                    "high":   30.0,
+                },
+                "critical_caps": {
+                    "plaintext":          0.0,
+                    "sslv2_sslv3":        15.0,
+                    "buffer_injection":   15.0,
+                    "starttls_stripping": 15.0,
+                    "broken_cipher":      20.0,
+                    "invalid_cert":       60.0,
+                },
             },
             "analysis_config":     self.analysis_config,
             "enterprise_explanation": self.enterprise_explanation,

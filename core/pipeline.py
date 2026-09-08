@@ -514,6 +514,30 @@ def stage6_fingerprint(
     """
     from .models import JA4Fingerprints
     try:
+        # If the session has no TLS handshake (e.g. plaintext or STARTTLS stripped/unnegotiated)
+        is_non_tls = (
+            hs is not None
+            and (
+                not hs.tls_version
+                and not hs.client_cipher_suites
+                and hs.handshake_status.startswith("INCONCLUSIVE")
+            )
+        )
+        if is_non_tls:
+            stage_res = StageResult(
+                stage_id="stage6_fingerprinting",
+                stage_name="JA4+ Fingerprinting (FoxIO)",
+                status=StageStatus.SKIPPED,
+                confidence=ConfidenceLevel.CONFIRMED,
+                diagnostics=["No TLS handshake present in session; JA4+ fingerprinting skipped."],
+                metadata={
+                    "implementation": "FoxIO official JA4+",
+                    "status": "SKIPPED_NON_TLS",
+                    "pcap_stream_match": False,
+                },
+            )
+            return JA4Fingerprints(), stage_res
+
         fingerprints, metadata = build_fingerprints(stream=stream, foxio=foxio)
         status = (
             StageStatus.SUCCESS

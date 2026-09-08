@@ -999,10 +999,20 @@ def score_session(
     if assessed_weight_sum > 1e-6:
         # Scale each assessed contribution up by 1/assessed_weight_sum so the
         # score still lives on [0, 100] even when some components are inconclusive.
+        for c in components:
+            if c.assessment in _ASSESSED_STATUSES:
+                c.effective_weight = round(c.weight / assessed_weight_sum, 4)
+                c.effective_contribution = round(c.component_score * c.effective_weight, 2)
+            else:
+                c.effective_weight = 0.0
+                c.effective_contribution = 0.0
         renorm_quality_score = sum(c.contribution for c in assessed) / assessed_weight_sum
         renorm_quality_score = max(0.0, min(100.0, renorm_quality_score))
     else:
         # Zero assessed weight — nothing was observable; score is definitively inconclusive
+        for c in components:
+            c.effective_weight = 0.0
+            c.effective_contribution = 0.0
         renorm_quality_score = 0.0
 
     evidence_completeness = assessed_weight_sum  # fraction of total weight that was assessed

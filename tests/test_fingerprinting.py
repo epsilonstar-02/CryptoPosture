@@ -79,6 +79,53 @@ class TestFoxIOIntegration(unittest.TestCase):
         self.assertFalse(meta.get("pcap_stream_match"))
         self.assertIsNone(fps.ja4)
 
+    def test_iter_json_records_concatenated_multiline(self):
+        multiline_foxio_output = """
+        {
+            "stream": 2,
+            "src": "10.10.1.88",
+            "dst": "10.0.0.3",
+            "srcport": "52114",
+            "dstport": "993",
+            "JA4.1": "t12d020300_04659ec43a24_355e4ef2c0d9"
+        }
+        {
+            "stream": 5,
+            "src": "198.51.100.20",
+            "dst": "10.0.0.4",
+            "srcport": "50123",
+            "dstport": "25",
+            "JA4.1": "t12d010300_f06271c2b022_355e4ef2c0d9"
+        }
+        """
+        records = list(FoxIOFingerprintIndex._iter_json_records(multiline_foxio_output))
+        self.assertEqual(len(records), 2)
+        self.assertEqual(records[0]["stream"], 2)
+        self.assertEqual(records[1]["stream"], 5)
+        self.assertEqual(records[0]["JA4.1"], "t12d020300_04659ec43a24_355e4ef2c0d9")
+
+    def test_foxio_non_tls_pcap_loads_cleanly(self):
+        pcap = Path("sample_pcaps/stripped_starttls_plaintext.pcap")
+        if not pcap.exists():
+            self.skipTest("stripped_starttls_plaintext.pcap not present")
+
+        idx = FoxIOFingerprintIndex.from_environment(pcap)
+        idx.load()
+        self.assertTrue(idx.loaded)
+        self.assertIsNone(idx.load_error)
+        self.assertEqual(len(idx._observations), 0)
+
+    def test_enterprise_network_simulation_loads_multiple_streams(self):
+        pcap = Path("sample_pcaps/enterprise_network_simulation.pcap")
+        if not pcap.exists():
+            self.skipTest("enterprise_network_simulation.pcap not present")
+
+        idx = FoxIOFingerprintIndex.from_environment(pcap)
+        idx.load()
+        self.assertTrue(idx.loaded)
+        self.assertIsNone(idx.load_error)
+        self.assertGreaterEqual(len(idx._observations), 5)
+
 
 class TestALPNFormatting(unittest.TestCase):
     def test_spec_alpn_examples(self):
