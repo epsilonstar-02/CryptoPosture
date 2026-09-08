@@ -49,62 +49,96 @@ For each email session in a PCAP file, the framework outputs:
 
 ---
 
-## 🧪 Demo Scenarios
+---
 
-Five synthetic forensic test PCAPs are pre-generated:
+## 🏢 Realistic Multi-Session Simulations & Benchmark Corpus
 
-| File | Expected Score | Expected Risk |
-|---|---|---|
-| `clean_implicit_tls.pcap` | 90-100 | LOW |
-| `weak_cipher_starttls.pcap` | 35-55 | HIGH (3DES, TLS 1.0, no FS) |
-| `stripped_starttls_plaintext.pcap` | 0 | CRITICAL (no TLS, cleartext) |
-| `expired_cert_implicit_tls.pcap` | 70-95 | LOW-MEDIUM |
-| `buffer_injection_attack.pcap` | 25-40 | HIGH (Poddebniak injection) |
+The framework includes realistic multi-session enterprise network captures, active attack campaign scenarios, and a 15-scenario ground-truth RFC/NIST validation benchmark:
+
+### Multi-Session Enterprise Simulations
+| Simulation File | Flows / Pkts | Description | Target Risk Tier |
+|---|---|---|---|
+| `enterprise_network_simulation.pcap` | **16 flows** / 119 pkts | Full corporate mail perimeter (Exec, Eng with PQC, HR, Finance, MTA, POP3S, CI/CD), legacy 3DES, expired certs, cleartext stripping, buffer injection | **CRITICAL** (EPI 1.02) |
+| `mitm_attack_campaign.pcap` | **6 flows** / 46 pkts | Active adversarial campaign: credential theft via STARTTLS stripping, buffer injection exfiltration, forced downgrade to TLS 1.0/3DES, phishing SNI mismatch | **CRITICAL** (EPI 0.18) |
+| `cloud_migration_audit.pcap` | **8 flows** / 63 pkts | Hybrid cloud migration exposure: modern M365/Workspace (TLS 1.3/PQC) vs legacy on-prem Exchange, unencrypted ERP, and shadow IT hardware | **CRITICAL** (EPI 0.83) |
+
+### Ground-Truth Deterministic Benchmarks (15 PCAPs)
+- **Tier 1 (Synthetic Fixtures):** `clean_implicit_tls`, `weak_cipher_starttls`, `stripped_starttls_plaintext`, `expired_cert_implicit_tls`, `buffer_injection_attack`
+- **Tier 2 (Real Mail-Server Lab Captures):** `postfix_submission_tls13`, `dovecot_imaps_tls12`, `sendmail_opportunistic_starttls`
+- **Tier 3 (Adversarial Edge Cases):** `cert_sni_mismatch`, `cert_weak_rsa1024`, `tcp_fragmented_client_hello`, `tcp_retransmission_duplicates`, `out_of_order_tcp_segments`, `malformed_tls_record_length`, `incomplete_tls_handshake_rst`
 
 ---
 
 ## 🛠 CLI Usage
 
 ```bash
-# Analyze a PCAP file (prints JSON)
-python main.py --analyze sample_pcaps/weak_cipher_starttls.pcap
+# ⚡ Instant 1-Click Live Demo (analyzes 16-flow enterprise simulation)
+python main.py --demo
+
+# Analyze any PCAP/PCAPNG file (prints terminal executive summary + JSON)
+python main.py --analyze sample_pcaps/enterprise_network_simulation.pcap
 
 # Export an HTML forensic report
-python main.py --analyze sample_pcaps/buffer_injection_attack.pcap --html --output report.html
+python main.py --analyze sample_pcaps/enterprise_network_simulation.pcap --html --output report.html
 
-# Regenerate synthetic demo PCAPs
+# Regenerate all benchmark PCAPs and enterprise simulations
 python main.py --generate-samples
-
-# Launch Streamlit dashboard
-python main.py --run-dashboard
 
 # Launch FastAPI REST server (docs at :8000/docs)
 python main.py --run-api
 
-# Run test suite (15 tests)
+# Run full test suite (258 automated tests)
 python main.py --test
 ```
 
 ---
 
-## 📐 Scoring Model
+## 📐 Scoring Model (`crypto-posture-v1`)
 
-```
-S_session = max(0, sum(wi * Si) - sum(Pk))
-```
+The framework implements an **Evidence-Aware Multi-Dimensional Cryptographic Posture Model** with **Non-Additive Critical Score Caps** at the session level, aggregated to an enterprise posture index via a **Volume-Weighted Harmonic Mean**.
 
-| Sub-Domain | Weight | Score Criteria |
+### Session Posture Formulation
+
+$$w_i^{\text{eff}} = \frac{w_i}{\sum_{j \in \text{assessed}} w_j} \qquad S_{\text{renorm}} = \sum_{i \in \text{assessed}} w_i^{\text{eff}} \cdot S_i$$
+
+$$S_{\text{session}} = \min\left(S_{\text{renorm}}, \text{Cap}_{\min}\right)$$
+
+### 1. Calibrated Evaluation Dimensions & Base Weights
+
+| Sub-Domain | Base Weight ($w_i$) | Scoring Criteria & Regulatory Grounding | Standards Authority |
+|---|---|---|---|
+| **TLS Version** | 0.25 | TLS 1.3 (100) > TLS 1.2 (80) > TLS 1.1 (20) > TLS 1.0/SSLv3 (0) | RFC 9325 / RFC 8996 / NIST SP 800-52r2 |
+| **Cipher Suite** | 0.20 | AEAD (100) > CBC with SHA-256 (50) > 3DES (10) > RC4/NULL (0) | NIST SP 800-52r2 §3.3.1 / RFC 9325 |
+| **Certificate Health** | 0.20 | Valid PKI chain & key ≥2048-bit RSA/256-bit ECC (100) > Self-signed (70) > Expired (10) | RFC 5280 / NIST SP 800-57 Part 1 |
+| **STARTTLS Transition** | 0.15 | Implicit TLS (100) > Successful STARTTLS negotiation (80) > Cleartext fallback (0) | RFC 8314 §3 / RFC 3207 / RFC 3501 |
+| **Forward Secrecy** | 0.10 | Ephemeral ECDHE (100) > DHE (80) > Static RSA without PFS (0) | RFC 9325 §4.2 / NIST SP 800-52r2 |
+| **Protocol Hygiene** | 0.10 | ALPN, SNI, Extended Master Secret (100) > Downgrade/stripping, buffer injection (0) | RFC 8446 / RFC 7627 / Poddebniak et al. |
+
+*Dynamic Renormalization:* When dimensions cannot be verified (e.g. non-mail protocol, unobserved certificate chain, or implicit TLS without STARTTLS negotiation), unobserved dimensions receive 0% effective weight ($w_i^{\text{eff}} = 0$) and evaluated dimensions dynamically scale so that $\sum w_i^{\text{eff}} = 1.0$.
+
+### 2. Non-Additive Critical Score Caps
+
+| Trigger Condition | Cap Ceiling | Vulnerability Impact | Reference |
+|---|---|---|---|
+| **Plaintext Mail / Cleartext Auth** | $\le 0.0$ | Total confidentiality compromise | RFC 8314 §3 |
+| **SSLv2 / SSLv3 Active** | $\le 15.0$ | Prohibited obsolete protocols (POODLE/DROWN) | RFC 8996 |
+| **Buffer Injection Detected** | $\le 15.0$ | Active command pipelining exploit across TLS boundary | USENIX Security '21 |
+| **STARTTLS Stripping Downgrade** | $\le 15.0$ | Active MitM downgrade attack | RFC 3207 / RFC 8314 |
+| **Prohibited / Null / Export Cipher** | $\le 20.0$ | Cryptographically void encryption | NIST SP 800-52r2 §3.3.1 |
+| **Invalid / Self-Signed / Expired Cert** | $\le 60.0$ | Trust chain invalidation | RFC 5280 / NIST SP 800-57 |
+
+### 3. Enterprise Aggregation & Calibrated Risk Tiers
+
+$$H = \frac{\sum w_i}{\sum \frac{w_i}{S_i}}$$
+
+Reconstructed TCP byte volume serves as the exposure proxy. The harmonic mean enforces the **Weakest-Link Principle** so that high-risk sessions cannot be averaged away.
+
+| Risk Tier | Posture Range | Compliance State |
 |---|---|---|
-| TLS Version | 0.25 | TLS 1.3=100, TLS 1.2=80, TLS 1.1=20, TLS 1.0=0 |
-| Cipher Suite | 0.20 | AEAD=100, CBC=50, 3DES=10, RC4/NULL=0 |
-| Certificate Health | 0.20 | Valid public CA=100, Self-signed=70, Expired=10 |
-| STARTTLS Transition | 0.15 | Implicit TLS=100, STARTTLS=80, Plaintext=0 |
-| Forward Secrecy | 0.10 | ECDHE=90, DHE=70, RSA=0 |
-| Protocol Context | 0.10 | SMTPS/IMAPS=100, Port 587=80, Cleartext port 25=20 |
-
-**Enterprise Posture Index** = volume-weighted harmonic mean across all sessions.
-
-Risk tiers: `90-100 LOW` | `75-89 GOOD` | `50-74 MEDIUM` | `25-49 HIGH` | `0-24 CRITICAL`
+| **LOW** | $80.0 - 100.0$ | Compliant with modern RFC 9325 & NIST SP 800-52r2 |
+| **MEDIUM** | $55.0 - 79.9$ | Operational with legacy configurations (e.g. CBC ciphers, self-signed certs) |
+| **HIGH** | $30.0 - 54.9$ | Major vulnerabilities or deprecated protocols (TLS 1.0/1.1, missing PFS) |
+| **CRITICAL** | $0.0 - 29.9$ | Catastrophic flaws: cleartext transmission, SSLv2/v3, buffer injection, stripping |
 
 ---
 
