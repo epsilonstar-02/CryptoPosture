@@ -229,5 +229,51 @@ class TestScorer(unittest.TestCase):
             "Fully plaintext session with NO_TLS penalty should score 0")
 
 
+class TestEnterpriseSimulations(unittest.TestCase):
+    """End-to-end integration tests for multi-session enterprise & adversarial PCAPs."""
+
+    @classmethod
+    def setUpClass(cls):
+        from generator.pcap_generator import generate_enterprise_simulations
+        SAMPLE_DIR.mkdir(parents=True, exist_ok=True)
+        cls.paths = generate_enterprise_simulations(SAMPLE_DIR)
+
+    def test_enterprise_network_simulation_16_flows(self):
+        path = self.paths.get("enterprise_network_simulation")
+        self.assertIsNotNone(path, "PCAP file must be generated")
+        summary = analyze_pcap(str(path), run_ml=True)
+        self.assertEqual(len(summary.sessions), 16, "Must reconstruct exactly 16 concurrent enterprise flows")
+        self.assertEqual(summary.overall_risk_tier, RiskTier.CRITICAL, "Enterprise risk tier must be CRITICAL")
+        self.assertLess(summary.enterprise_posture_index, 10.0, "Harmonic mean must reflect weakest-link drag")
+
+        # Verify buffer injection detected
+        injection_sessions = [s for s in summary.sessions if s.buffer_injection_detected]
+        self.assertEqual(len(injection_sessions), 1, "Must detect exactly 1 buffer injection session")
+        self.assertIn("STARTTLS-004", [v.code for v in injection_sessions[0].violations])
+
+        # Verify ML outlier isolation ran (baseline >= 5 flows)
+        anomalies = [s for s in summary.sessions if s.is_anomalous]
+        self.assertGreaterEqual(len(anomalies), 1, "Isolation Forest must identify at least one capture outlier")
+
+    def test_mitm_attack_campaign_6_flows(self):
+        path = self.paths.get("mitm_attack_campaign")
+        self.assertIsNotNone(path, "PCAP file must be generated")
+        summary = analyze_pcap(str(path), run_ml=True)
+        self.assertEqual(len(summary.sessions), 6, "Must reconstruct exactly 6 attack flows")
+        self.assertEqual(summary.overall_risk_tier, RiskTier.CRITICAL)
+
+        # Buffer injection detected
+        self.assertTrue(any(s.buffer_injection_detected for s in summary.sessions))
+        # Cleartext credential stripping detected
+        self.assertTrue(any(s.starttls_status and s.starttls_status.value == "Stripped" for s in summary.sessions))
+
+    def test_cloud_migration_audit_8_flows(self):
+        path = self.paths.get("cloud_migration_audit")
+        self.assertIsNotNone(path, "PCAP file must be generated")
+        summary = analyze_pcap(str(path), run_ml=True)
+        self.assertEqual(len(summary.sessions), 8, "Must reconstruct exactly 8 hybrid cloud flows")
+        self.assertEqual(summary.overall_risk_tier, RiskTier.CRITICAL)
+
+
 if __name__ == "__main__":
     unittest.main(verbosity=2)

