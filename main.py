@@ -149,6 +149,53 @@ def _run_tests():
     sys.exit(result.returncode)
 
 
+def _init_db():
+    """Initialize database tables."""
+    from core.db import init_db
+    print("📦 Initializing database schema...")
+    init_db()
+    print("✅ Database initialized successfully.")
+
+
+def _create_admin():
+    """Interactive command to create or update an administrator account."""
+    import getpass
+    from core.db import SessionLocal, init_db
+    from core.db_models import User
+    from core.auth import hash_password
+
+    init_db()
+    db = SessionLocal()
+    try:
+        u = input("Enter admin username [admin]: ").strip() or "admin"
+        e = input(f"Enter admin email [{u}@forensics.local]: ").strip() or f"{u}@forensics.local"
+        p = getpass.getpass("Enter admin password: ")
+        if not p:
+            print("❌ Password cannot be empty.")
+            return
+
+        existing = db.query(User).filter((User.username == u.lower()) | (User.email == e.lower())).first()
+        if existing:
+            existing.role = "admin"
+            existing.hashed_password = hash_password(p)
+            db.commit()
+            print(f"✅ User '{existing.username}' updated as Admin with new password.")
+        else:
+            new_admin = User(
+                username=u.lower(),
+                email=e.lower(),
+                hashed_password=hash_password(p),
+                full_name="System Administrator",
+                role="admin",
+                is_active=True,
+            )
+            db.add(new_admin)
+            db.commit()
+            print(f"✅ Admin user '{new_admin.username}' created successfully!")
+    finally:
+        db.close()
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="cryptoposture",
@@ -161,6 +208,8 @@ Examples:
   python main.py --analyze capture.pcap --html --output report.html
   python main.py --generate-samples
   python main.py --run-api --host 0.0.0.0 --port 8000
+  python main.py --init-db
+  python main.py --create-admin
   python main.py --test
         """
     )
@@ -170,6 +219,8 @@ Examples:
     mode.add_argument("--analyze", metavar="FILE.pcap", help="Analyze a PCAP/PCAPNG file")
     mode.add_argument("--generate-samples", action="store_true", help="Generate synthetic demo PCAPs and enterprise simulations")
     mode.add_argument("--run-api", action="store_true", help="Launch FastAPI REST API server")
+    mode.add_argument("--init-db", action="store_true", help="Initialize or verify database tables")
+    mode.add_argument("--create-admin", action="store_true", help="Create or reset an administrator account")
     mode.add_argument("--test", action="store_true", help="Run the test suite")
 
     parser.add_argument("--html",   action="store_true", help="Export HTML report instead of JSON")
@@ -188,6 +239,10 @@ Examples:
         _generate_samples()
     elif args.run_api:
         _run_api(host=args.host, port=args.port)
+    elif args.init_db:
+        _init_db()
+    elif args.create_admin:
+        _create_admin()
     elif args.test:
         _run_tests()
 

@@ -12,17 +12,23 @@ from __future__ import annotations
 import io
 import logging
 import os
+import json
 import tempfile
 import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any, Optional, Tuple
 
-from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from sqlalchemy.orm import Session
 
+from core.auth import get_current_user, get_current_user_optional, log_audit_event, require_role
+from core.db import get_db, init_db
+from core.db_models import AnalysisRecord, AuditLog, User
+from api.auth_router import auth_router
 from core.ingestion import (
     CorruptCaptureError,
     EmptyCaptureError,
@@ -96,6 +102,12 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Initialize database schema
+init_db()
+
+# Mount Authentication & RBAC Router
+app.include_router(auth_router)
 
 
 # ---------------------------------------------------------------------------
@@ -202,8 +214,11 @@ def root():
 
 @app.post("/api/analyze", summary="Analyze an uploaded PCAP file")
 async def analyze_uploaded_pcap(
+    request: Request,
     file: UploadFile = File(..., description="PCAP or PCAPNG evidence file"),
     run_ml: bool = True,
+    current_user: Optional[User] = Depends(get_current_user_optional),
+    db: Session = Depends(get_db),
 ) -> JSONResponse:
     """
     Upload a PCAP/PCAPNG file for forensic analysis.
@@ -213,6 +228,7 @@ async def analyze_uploaded_pcap(
     - Streaming disk persistence with configurable size ceiling
     - Isolated forensic engine execution
     - Comprehensive metadata envelope with unique analysis ID
+    - Persistent database record storage and immutable audit logging
     """
     if not file.filename:
         raise HTTPException(
@@ -258,15 +274,55 @@ async def analyze_uploaded_pcap(
             "forensic_engine_version": FORENSIC_ENGINE_VERSION,
             "schema_version": SCHEMA_VERSION,
             "scoring_policy": result.get("scoring_policy"),
+            "user_id": current_user.id if current_user else None,
+            "analyst": current_user.username if current_user else "anonymous",
         }
 
+        # Persist analysis run and forensic evidence to database
+        try:
+            ev = result.get("evidence", {})
+            vs_breakdown = result.get("violation_severity_breakdown", {})
+            record = AnalysisRecord(
+                id=analysis_id,
+                filename=file.filename,
+                sha256=ev.get("sha256_hash", ""),
+                file_size_bytes=total_bytes,
+                capture_format=ev.get("capture_format", "PCAP"),
+                capture_duration=ev.get("capture_duration", 0.0),
+                total_packets=ev.get("total_packets", 0),
+                session_count=result.get("session_count", 0),
+                enterprise_posture_index=result.get("enterprise_posture_index", 0.0),
+                overall_risk_tier=result.get("overall_risk_tier", "UNKNOWN"),
+                total_violations=result.get("total_violations", 0),
+                critical_violations=vs_breakdown.get("CRITICAL", 0),
+                high_violations=vs_breakdown.get("HIGH", 0),
+                processing_time_ms=duration_ms,
+                user_id=current_user.id if current_user else None,
+                summary_json=json.dumps(result),
+            )
+            db.add(record)
+            db.commit()
+
+            log_audit_event(
+                db=db,
+                action="ANALYZE_PCAP",
+                user=current_user,
+                resource_id=analysis_id,
+                details=f"Analyzed '{file.filename}' ({result.get('session_count', 0)} sessions, EPI={result.get('enterprise_posture_index', 0.0):.2f})",
+                request=request,
+            )
+        except Exception as db_err:
+            logger.warning("Failed to persist analysis %s to database: %s", analysis_id, db_err)
+            db.rollback()
+
         logger.info(
-            "Analysis %s completed for '%s' in %.2fms: %d sessions, EPI=%.2f",
+            "Analysis %s completed for '%s' in %.2fms: %d sessions, EPI=%.2f (Analyst: %s)",
             analysis_id,
             file.filename,
             duration_ms,
             result.get("session_count", 0),
             result.get("enterprise_posture_index", 0.0),
+            current_user.username if current_user else "anonymous",
         )
 
         return JSONResponse(
@@ -402,8 +458,14 @@ def generate_samples() -> dict:
 
 
 @demo_router.get("/samples/{name}/analyze", summary="Analyze a named sample PCAP")
-def analyze_sample(name: str, run_ml: bool = True) -> JSONResponse:
-    """Run forensic analysis on one of the pre-generated sample PCAPs."""
+def analyze_sample(
+    name: str,
+    request: Request,
+    run_ml: bool = True,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+) -> JSONResponse:
+    """Run forensic analysis on one of the pre-generated sample PCAPs and persist to database."""
     _ensure_samples()
     path = SAMPLE_DIR / f"{name}.pcap"
     if not path.exists():
@@ -411,9 +473,98 @@ def analyze_sample(name: str, run_ml: bool = True) -> JSONResponse:
             status_code=404,
             detail=f"Sample '{name}' not found. POST /api/demo/samples/generate first.",
         )
+    start_time = time.perf_counter()
+    analysis_id = f"an_{uuid.uuid4().hex[:12]}"
     try:
         summary = analyze_pcap(str(path), run_ml=run_ml)
-        return JSONResponse(content=summary.to_dict())
+        result = summary.to_dict()
+        duration_ms = round((time.perf_counter() - start_time) * 1000, 2)
+
+        filename = f"{name}.pcap"
+        result["evidence"]["filename"] = filename
+        total_bytes = path.stat().st_size if path.exists() else result.get("evidence", {}).get("file_size_bytes", 0)
+
+        # Forensic audit metadata envelope
+        result["meta"] = {
+            "analysis_id": analysis_id,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "processing_time_ms": duration_ms,
+            "uploaded_bytes": total_bytes,
+            "forensic_engine_version": FORENSIC_ENGINE_VERSION,
+            "schema_version": SCHEMA_VERSION,
+            "scoring_policy": result.get("scoring_policy"),
+            "user_id": current_user.id if current_user and hasattr(current_user, "id") else None,
+            "analyst": current_user.username if current_user and hasattr(current_user, "username") else "anonymous",
+            "is_sample": True,
+        }
+
+        # Persist analysis run to database
+        target_db = db if isinstance(db, Session) else None
+        should_close = False
+        try:
+            if target_db is None:
+                from core.db import SessionLocal
+                target_db = SessionLocal()
+                should_close = True
+
+            ev = result.get("evidence", {})
+            vs_breakdown = result.get("violation_severity_breakdown", {})
+            record = AnalysisRecord(
+                id=analysis_id,
+                filename=filename,
+                sha256=ev.get("sha256_hash", ""),
+                file_size_bytes=total_bytes,
+                capture_format=ev.get("capture_format", "PCAP"),
+                capture_duration=ev.get("capture_duration", 0.0),
+                total_packets=ev.get("total_packets", 0),
+                session_count=result.get("session_count", 0),
+                enterprise_posture_index=result.get("enterprise_posture_index", 0.0),
+                overall_risk_tier=result.get("overall_risk_tier", "UNKNOWN"),
+                total_violations=result.get("total_violations", 0),
+                critical_violations=vs_breakdown.get("CRITICAL", 0),
+                high_violations=vs_breakdown.get("HIGH", 0),
+                processing_time_ms=duration_ms,
+                user_id=current_user.id if current_user and hasattr(current_user, "id") else None,
+                summary_json=json.dumps(result),
+            )
+            target_db.add(record)
+            target_db.commit()
+
+            if request and hasattr(request, "client"):
+                log_audit_event(
+                    db=target_db,
+                    action="ANALYZE_SAMPLE",
+                    user=current_user if hasattr(current_user, "id") else None,
+                    resource_id=analysis_id,
+                    details=f"Analyzed sample '{filename}' ({result.get('session_count', 0)} sessions, EPI={result.get('enterprise_posture_index', 0.0):.2f})",
+                    request=request,
+                )
+        except Exception as db_err:
+            logger.warning("Failed to persist sample analysis %s to database: %s", analysis_id, db_err)
+            if target_db:
+                target_db.rollback()
+        finally:
+            if should_close and target_db:
+                target_db.close()
+
+        logger.info(
+            "Sample analysis %s completed for '%s' in %.2fms: %d sessions, EPI=%.2f",
+            analysis_id,
+            filename,
+            duration_ms,
+            result.get("session_count", 0),
+            result.get("enterprise_posture_index", 0.0),
+        )
+
+        return JSONResponse(
+            content=result,
+            headers={
+                "X-Analysis-ID": analysis_id,
+                "X-Forensic-Engine-Version": FORENSIC_ENGINE_VERSION,
+            },
+        )
+    except HTTPException:
+        raise
     except Exception as exc:
         logger.exception("Error analyzing sample %s", name)
         raise HTTPException(status_code=500, detail=str(exc))
@@ -452,6 +603,105 @@ app.include_router(demo_router)
 
 
 # ---------------------------------------------------------------------------
+# Investigation History Endpoints
+# ---------------------------------------------------------------------------
+
+history_router = APIRouter(prefix="/api/history", tags=["Investigation History"])
+
+
+@history_router.get("", summary="List historical forensic analyses")
+def list_history(
+    limit: int = Query(50, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    risk_tier: Optional[str] = Query(None, description="Filter by risk tier (CRITICAL, HIGH, MEDIUM, LOW)"),
+    search: Optional[str] = Query(None, description="Filter by filename or SHA-256"),
+    db: Session = Depends(get_db),
+    _user: Optional[User] = Depends(get_current_user_optional),
+) -> dict:
+    """Retrieve paginated historical PCAP analysis runs."""
+    query = db.query(AnalysisRecord)
+    if risk_tier:
+        query = query.filter(AnalysisRecord.overall_risk_tier == risk_tier.upper())
+    if search:
+        search_pattern = f"%{search.strip()}%"
+        query = query.filter(
+            (AnalysisRecord.filename.ilike(search_pattern)) | (AnalysisRecord.sha256.ilike(search_pattern))
+        )
+
+    total = query.count()
+    records = query.order_by(AnalysisRecord.created_at.desc()).offset(offset).limit(limit).all()
+    return {
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "items": [r.to_dict(include_full=False) for r in records],
+    }
+
+
+@history_router.get("/{analysis_id}", summary="Retrieve stored analysis JSON by ID")
+def get_historical_analysis(
+    analysis_id: str,
+    db: Session = Depends(get_db),
+    _user: Optional[User] = Depends(get_current_user_optional),
+) -> JSONResponse:
+    """Load a previously analyzed forensic summary without needing to re-upload the PCAP."""
+    record = db.query(AnalysisRecord).filter(AnalysisRecord.id == analysis_id).first()
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail={"error_code": "ANALYSIS_NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."},
+        )
+    try:
+        summary_data = json.loads(record.summary_json)
+        return JSONResponse(
+            content=summary_data,
+            headers={
+                "X-Analysis-ID": record.id,
+                "X-Forensic-Engine-Version": FORENSIC_ENGINE_VERSION,
+                "X-Cached-Analysis": "true",
+            },
+        )
+    except Exception as exc:
+        logger.exception("Failed to parse stored JSON for analysis %s", analysis_id)
+        raise HTTPException(status_code=500, detail="Corrupt stored analysis payload.")
+
+
+@history_router.delete("/{analysis_id}", summary="Delete an analysis record")
+def delete_historical_analysis(
+    analysis_id: str,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Delete an analysis run from history (Admin or creator only)."""
+    record = db.query(AnalysisRecord).filter(AnalysisRecord.id == analysis_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Analysis record not found.")
+
+    if current_user.role != "admin" and record.user_id != current_user.id:
+        raise HTTPException(
+            status_code=403,
+            detail={"error_code": "FORBIDDEN", "message": "Only admins or the creator can delete an analysis record."},
+        )
+
+    db.delete(record)
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        action="DELETE_ANALYSIS",
+        user=current_user,
+        resource_id=analysis_id,
+        details=f"Deleted analysis record '{analysis_id}' for file '{record.filename}'",
+        request=request,
+    )
+    return {"status": "ok", "deleted_id": analysis_id}
+
+
+app.include_router(history_router)
+
+
+# ---------------------------------------------------------------------------
 # Backward-compatible Aliases (/api/samples/* -> /api/demo/samples/*)
 # ---------------------------------------------------------------------------
 
@@ -466,8 +716,20 @@ def legacy_generate_samples():
 
 
 @app.get("/api/samples/{name}/analyze", include_in_schema=False)
-def legacy_analyze_sample(name: str, run_ml: bool = True):
-    return analyze_sample(name, run_ml=run_ml)
+def legacy_analyze_sample(
+    name: str,
+    request: Request,
+    run_ml: bool = True,
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_current_user_optional),
+):
+    return analyze_sample(
+        name=name,
+        request=request,
+        run_ml=run_ml,
+        db=db,
+        current_user=current_user,
+    )
 
 
 @app.get("/api/samples/{name}/report", include_in_schema=False)

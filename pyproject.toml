@@ -5,13 +5,16 @@ description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "bcrypt>=4.1.0",
     "cryptography>=50.0.1",
     "fastapi>=0.141.1",
     "httpx>=0.28.0",
     "pandas>=3.0.5",
+    "pyjwt>=2.8.0",
     "python-dotenv>=1.2.3",
     "scapy>=2.7.0",
     "scikit-learn>=1.9.0",
+    "sqlalchemy>=2.0.0",
     "streamlit>=1.63.0",
     "uvicorn>=0.52.4",
 ]

@@ -219,3 +219,8 @@ __marimo__/
 
 # Local deprecated backup files
 deprecated/
+
+# Application Database & Local Data
+data/
+*.db
+*.sqlite3
