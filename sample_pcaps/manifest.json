@@ -1,7 +1,7 @@
 {
   "manifest_version": "2.0.0",
   "generator_version": "2.0.0",
-  "generated_at": "2026-09-08T05:05:10.690415+00:00",
+  "generated_at": "2026-09-11T11:19:08.390072+00:00",
   "framework": "Email Cryptographic Forensics Framework",
   "positioning": "We use synthetic captures as controlled ground-truth fixtures for deterministic testing, and we separately validate the forensic pipeline against real mail-server captures.",
   "total_scenarios": 5,
@@ -34,7 +34,7 @@
       "filename": "clean_implicit_tls.pcap",
       "tier": "tier1_synthetic",
       "file_size_bytes": 2435,
-      "sha256_hash": "866d189f15e000c787de6cd54ffb7ef3bbb2548dff0633944c0355747c7bb265",
+      "sha256_hash": "154bb1c4b9b2af98e180867be3d3cccd938c3852cf144601c28e1252c9f28453",
       "benchmark_spec": {
         "scenario_id": "clean_implicit_tls",
         "name": "Clean Implicit TLS (IMAPS TLS 1.3)",
@@ -69,7 +69,7 @@
       "filename": "weak_cipher_starttls.pcap",
       "tier": "tier1_synthetic",
       "file_size_bytes": 2673,
-      "sha256_hash": "a03ca19503aa8b0304f9529f7ad978c94ffaad93a52e78c09c7add123ef1e387",
+      "sha256_hash": "e143cc88c223a026d19f7e42dca7edfabfa47055d8f1c3f5ebf5bea37f280e14",
       "benchmark_spec": {
         "scenario_id": "weak_cipher_starttls",
         "name": "Weak Cipher STARTTLS (TLS 1.0, 3DES, SHA-1 cert)",
@@ -143,7 +143,7 @@
       "filename": "expired_cert_implicit_tls.pcap",
       "tier": "tier1_synthetic",
       "file_size_bytes": 2279,
-      "sha256_hash": "a6a2cf11be8fdd497b21734bb86d23225546f074fb331404ad28984ab8b88265",
+      "sha256_hash": "478b71e120e053249afa45d0baf391ff62902c9016cb4c9672923806a2ff2f89",
       "benchmark_spec": {
         "scenario_id": "expired_cert_implicit_tls",
         "name": "Expired Certificate (IMAPS TLS 1.2)",
@@ -178,7 +178,7 @@
       "filename": "buffer_injection_attack.pcap",
       "tier": "tier1_synthetic",
       "file_size_bytes": 2698,
-      "sha256_hash": "c4e03cd5769ff50e47265dd7f42951f23942a133d63ae547e67a3c31bbb821cd",
+      "sha256_hash": "b0768918f8e13af7e782aabcae3383ea924eac597ebd6204a5daf37e02e4275e",
       "benchmark_spec": {
         "scenario_id": "buffer_injection_attack",
         "name": "Buffer Injection Attack (Poddebniak et al. USENIX 2021)",
