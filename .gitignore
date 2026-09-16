@@ -224,3 +224,13 @@ deprecated/
 data/
 *.db
 *.sqlite3
+
+# Environment variables & API keys
+.env
+*.env
+!.env.example
+
+# Tool & Editor local caches
+.commandcode/
+.audit/
+
