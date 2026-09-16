@@ -52,7 +52,7 @@ That is the whole pitch. Everything else (JA4 fingerprinting, ML anomaly detecti
 | 6 | **Deterministic rule engine** | Hard-coded checks against NIST SP 800-52 Rev.2 / RFC 9325: flag SSLv2/3, TLS 1.0/1.1, RC4/3DES/NULL ciphers, MD5/SHA-1 signatures, expired certs, key <2048-bit RSA | This *is* the product's credibility — deterministic, explainable, no ML needed to be trustworthy |
 | 7 | **Posture scoring formula** | Implement `S_session = max(0, Σ(wᵢ·Sᵢ) − ΣPₖ)` across the 6 sub-domains from the synopsis (TLS version, cipher, cert health, STARTTLS/transition, forward secrecy, protocol context) | This is your headline metric — the number judges will remember |
 | 8 | **Report output** | JSON export per session + a human-readable summary (table or simple HTML) | Judges need to see structured, exportable forensic output |
-| 9 | **Minimal dashboard/UI** | A simple web page or Streamlit app: upload PCAP → table of sessions → posture score, risk tier, and violation list | This is what's on screen during the live demo |
+| 9 | **Minimal dashboard/UI** | A web dashboard: upload PCAP → table of sessions → posture score, risk tier, and violation list | This is what's on screen during the live demo |
 | 10 | **Synthetic demo PCAPs** | 3–5 curated `.pcap` files you generate/capture yourself showing: (a) clean implicit TLS session, (b) STARTTLS with weak cipher, (c) plaintext/stripped STARTTLS, (d) expired cert | **Critical** — do not rely on finding "real" vulnerable traffic; build your own demo data early (see Day 2 below) |
 
 ### 4.2 P1 — Should-Have (stretch, high demo value per hour of effort)
@@ -94,7 +94,7 @@ Present this tier explicitly on a **"Roadmap Beyond the Hackathon"** slide. Judg
 | Rule engine | Plain Python (dict-based rule table) | No need for a framework; keep it simple and legible for judges reading your code |
 | ML (P1 only) | `scikit-learn` (IsolationForest) | Minimal setup, well documented, fast to fit on small feature sets |
 | Backend/API | **FastAPI** | Async, auto-generates OpenAPI docs (nice to show), trivial to wire to a frontend |
-| Frontend/dashboard | **Streamlit** (fastest) or a minimal React page if a teammate is strong in frontend | Streamlit lets one person build upload→table→score UI in a few hours |
+| Frontend/dashboard | **React** web dashboard | Clean, modern UI for upload → session table → posture score |
 | Report export | Plain `json.dumps` + Jinja2-rendered HTML/PDF summary | Don't build a real PDF pipeline from scratch — Jinja2 → HTML → browser print-to-PDF is enough |
 | Demo PCAPs | Your own mail server (e.g., local Postfix/Dovecot in Docker) + `openssl s_client`/`swaks` to force specific TLS versions/ciphers, captured with `tcpdump` | This is the single highest-leverage task — do it Day 1–2 |
 
@@ -146,7 +146,7 @@ All three converge for integration on Day 6–7.
 
 ### Day 6 — Integration + Dashboard v1
 - Wire ingestion → reassembly → parsing → scoring into one pipeline (FastAPI endpoint or CLI, whichever is faster for your team)
-- Streamlit/React dashboard: upload PCAP, see a session table with posture score + risk tier + violations
+- React dashboard: upload PCAP, see a session table with posture score + risk tier + violations
 - **Full pipeline should run end-to-end on at least one demo PCAP by end of Day 6** — this is your integration checkpoint; if it's not working, cut a P1 feature immediately rather than let this slip
 
 ### Day 7 — Stretch Features (only if Day 6 checkpoint passed)

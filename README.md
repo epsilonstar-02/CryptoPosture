@@ -13,18 +13,25 @@ A passive, out-of-band forensic framework that ingests PCAP captures of enterpri
 # Option A — Automated setup (recommended)
 bash setup.sh
 source .venv/bin/activate
-streamlit run dashboard/app.py
+python main.py --demo
 
 # Option B — Manual (if you have uv installed)
 uv sync
-uv run streamlit run dashboard/app.py
+uv run python main.py --demo
 
 # Option C — pip
 pip install -r requirements.txt
-streamlit run dashboard/app.py
+python main.py --demo
 ```
 
-Dashboard opens at **http://localhost:8501** — click any demo scenario in the sidebar.
+Or start the backend API and React dashboard:
+```bash
+# Start FastAPI backend
+python main.py --run-api
+
+# Start React frontend
+cd dashboard/react-app && npm run dev
+```
 
 ---
 
@@ -194,7 +201,7 @@ SIH-26-Demo/
 ├── api/
 │   └── app.py               — FastAPI REST API
 ├── dashboard/
-│   └── app.py               — Streamlit interactive dashboard
+│   └── react-app/           — React frontend dashboard
 ├── sample_pcaps/            — Generated PCAPs (15 scenarios) + manifest.json
 ├── tests/
 │   ├── test_end_to_end.py   — 15 integration + unit tests
