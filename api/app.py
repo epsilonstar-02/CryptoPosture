@@ -40,6 +40,7 @@ from core.ingestion import (
 from core.models import FORENSIC_ENGINE_VERSION, SCHEMA_VERSION
 from core.pipeline import analyze_pcap
 from core.report_exporter import export_json, export_html
+from core.llm_narrator import generate_narrative, generate_narrative_from_dict
 from generator.pcap_generator import (
     generate_all,
     generate_enterprise_simulations,
@@ -217,6 +218,7 @@ async def analyze_uploaded_pcap(
     request: Request,
     file: UploadFile = File(..., description="PCAP or PCAPNG evidence file"),
     run_ml: bool = True,
+    include_narrative: bool = True,
     current_user: Optional[User] = Depends(get_current_user_optional),
     db: Session = Depends(get_db),
 ) -> JSONResponse:
@@ -229,6 +231,7 @@ async def analyze_uploaded_pcap(
     - Isolated forensic engine execution
     - Comprehensive metadata envelope with unique analysis ID
     - Persistent database record storage and immutable audit logging
+    - LLM-generated executive narrative summary (requires GEMINI_API_KEY)
     """
     if not file.filename:
         raise HTTPException(
@@ -264,6 +267,13 @@ async def analyze_uploaded_pcap(
 
         # Restore original uploaded filename in evidence metadata
         result["evidence"]["filename"] = file.filename
+
+        # LLM executive narrative (non-blocking; degrades gracefully if no API key)
+        if include_narrative:
+            narrative_result = generate_narrative(summary)
+            result["ai_narrative"] = narrative_result.to_dict()
+        else:
+            result["ai_narrative"] = {"skipped_reason": "DISABLED_BY_CALLER"}
 
         # Forensic audit metadata envelope
         result["meta"] = {
@@ -415,6 +425,48 @@ async def analyze_and_get_report(
 
 
 # ---------------------------------------------------------------------------
+# LLM Narrative Endpoint
+# ---------------------------------------------------------------------------
+
+@app.post(
+    "/api/narrative",
+    summary="Generate or regenerate an LLM executive narrative for a stored analysis result",
+    tags=["Analysis"],
+)
+async def generate_narrative_endpoint(
+    request: Request,
+    _user: Optional[User] = Depends(get_current_user_optional),
+) -> JSONResponse:
+    """
+    Accepts a stored analysis result JSON body (or just the top-level fields) and
+    returns an LLM-generated executive narrative via gemini-2.5-flash.
+
+    Useful for:
+    - Regenerating narratives for cached history results without re-uploading the PCAP.
+    - Frontend 'Regenerate Summary' actions.
+
+    Requires GEMINI_API_KEY or GOOGLE_API_KEY environment variable.
+    Returns a graceful skipped_reason if no key is configured.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(
+            status_code=422,
+            detail={"error_code": "INVALID_JSON", "message": "Request body must be valid JSON."},
+        )
+
+    if not isinstance(body, dict):
+        raise HTTPException(
+            status_code=422,
+            detail={"error_code": "INVALID_BODY", "message": "Request body must be a JSON object."},
+        )
+
+    narrative_result = generate_narrative_from_dict(body)
+    return JSONResponse(content={"ai_narrative": narrative_result.to_dict()})
+
+
+# ---------------------------------------------------------------------------
 # Demo & Synthetic Evidence Namespace
 # ---------------------------------------------------------------------------
 
@@ -462,6 +514,7 @@ def analyze_sample(
     name: str,
     request: Request,
     run_ml: bool = True,
+    include_narrative: bool = True,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ) -> JSONResponse:
@@ -483,6 +536,13 @@ def analyze_sample(
         filename = f"{name}.pcap"
         result["evidence"]["filename"] = filename
         total_bytes = path.stat().st_size if path.exists() else result.get("evidence", {}).get("file_size_bytes", 0)
+
+        # LLM executive narrative (non-blocking; degrades gracefully if no API key)
+        if include_narrative:
+            narrative_result = generate_narrative(summary)
+            result["ai_narrative"] = narrative_result.to_dict()
+        else:
+            result["ai_narrative"] = {"skipped_reason": "DISABLED_BY_CALLER"}
 
         # Forensic audit metadata envelope
         result["meta"] = {
@@ -720,6 +780,7 @@ def legacy_analyze_sample(
     name: str,
     request: Request,
     run_ml: bool = True,
+    include_narrative: bool = True,
     db: Session = Depends(get_db),
     current_user: Optional[User] = Depends(get_current_user_optional),
 ):
@@ -727,6 +788,7 @@ def legacy_analyze_sample(
         name=name,
         request=request,
         run_ml=run_ml,
+        include_narrative=include_narrative,
         db=db,
         current_user=current_user,
     )
