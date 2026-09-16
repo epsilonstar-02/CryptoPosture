@@ -680,6 +680,11 @@ def list_history(
 ) -> dict:
     """Retrieve paginated historical PCAP analysis runs."""
     query = db.query(AnalysisRecord)
+
+    # Scoping: Analysts only view their own investigations; Admins view all analysts' history
+    if _user and _user.role != "admin":
+        query = query.filter(AnalysisRecord.user_id == _user.id)
+
     if risk_tier:
         query = query.filter(AnalysisRecord.overall_risk_tier == risk_tier.upper())
     if search:
@@ -711,6 +716,14 @@ def get_historical_analysis(
             status_code=404,
             detail={"error_code": "ANALYSIS_NOT_FOUND", "message": f"Analysis '{analysis_id}' not found."},
         )
+
+    # Scoping: Analysts only view their own investigations; Admins view all
+    if _user and _user.role != "admin":
+        if record.user_id is not None and record.user_id != _user.id:
+            raise HTTPException(
+                status_code=403,
+                detail={"error_code": "FORBIDDEN", "message": "Analysts can only access their own investigation history."},
+            )
     try:
         summary_data = json.loads(record.summary_json)
         return JSONResponse(

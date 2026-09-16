@@ -211,6 +211,21 @@ class TestAuthAndDB(unittest.TestCase):
         users = ok_resp.json()
         self.assertEqual(len(users), 2)
 
+        # Admin updating user to retired roles (lead_analyst, auditor) is rejected by schema (422)
+        invalid_role_resp1 = self.client.patch(
+            f"/api/auth/users/{users[1]['id']}",
+            json={"role": "lead_analyst"},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(invalid_role_resp1.status_code, 422)
+
+        invalid_role_resp2 = self.client.patch(
+            f"/api/auth/users/{users[1]['id']}",
+            json={"role": "auditor"},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(invalid_role_resp2.status_code, 422)
+
     # -----------------------------------------------------------------------
     # 5. Analysis Persistence, History & Retrieval
     # -----------------------------------------------------------------------
@@ -298,23 +313,108 @@ class TestAuthAndDB(unittest.TestCase):
     # 6. Audit Trail Logging
     # -----------------------------------------------------------------------
     def test_audit_log_trail(self):
-        # Register user (generates USER_REGISTER audit log)
+        # Register first user (Admin - generates USER_REGISTER audit log)
         r = self.client.post(
             "/api/auth/register",
-            json={"username": "auditor_admin", "email": "admin@audit.local", "password": "AuditAdmin123!"},
+            json={"username": "super_admin", "email": "admin@audit.local", "password": "AuditAdmin123!"},
         )
-        token = r.json()["access_token"]
+        admin_token = r.json()["access_token"]
 
-        # Fetch audit logs
+        # Admin fetches audit logs -> 200 OK
         logs_resp = self.client.get(
             "/api/auth/audit-logs",
-            headers={"Authorization": f"Bearer {token}"},
+            headers={"Authorization": f"Bearer {admin_token}"},
         )
         self.assertEqual(logs_resp.status_code, 200)
         logs_data = logs_resp.json()
         self.assertGreaterEqual(logs_data["total"], 1)
         actions = [log["action"] for log in logs_data["logs"]]
         self.assertIn("USER_REGISTER", actions)
+
+        # Register second user (Analyst)
+        r2 = self.client.post(
+            "/api/auth/register",
+            json={"username": "field_analyst", "email": "analyst@audit.local", "password": "Analyst123!"},
+        )
+        analyst_token = r2.json()["access_token"]
+
+        # Analyst attempting to access audit logs -> 403 Forbidden
+        analyst_logs_resp = self.client.get(
+            "/api/auth/audit-logs",
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(analyst_logs_resp.status_code, 403)
+
+    # -----------------------------------------------------------------------
+    # 7. Role-Based Investigation History Scoping
+    # -----------------------------------------------------------------------
+    def test_history_scoping_analyst_vs_admin(self):
+        # Register Admin, Analyst A, and Analyst B
+        r_admin = self.client.post(
+            "/api/auth/register",
+            json={"username": "hq_admin", "email": "admin@gov.local", "password": "AdminPassword1!"},
+        )
+        admin_token = r_admin.json()["access_token"]
+
+        r_a = self.client.post(
+            "/api/auth/register",
+            json={"username": "alice", "email": "alice@gov.local", "password": "AlicePassword1!"},
+        )
+        token_a = r_a.json()["access_token"]
+
+        r_b = self.client.post(
+            "/api/auth/register",
+            json={"username": "bob", "email": "bob@gov.local", "password": "BobPassword1!"},
+        )
+        token_b = r_b.json()["access_token"]
+
+        sample_pcap = Path(DEFAULT_OUTPUT_DIR) / "clean_implicit_tls.pcap"
+
+        # Alice analyzes a PCAP
+        with open(sample_pcap, "rb") as f:
+            resp_a = self.client.post(
+                "/api/analyze?run_ml=false",
+                files={"file": ("alice_capture.pcap", f, "application/vnd.tcpdump.pcap")},
+                headers={"Authorization": f"Bearer {token_a}"},
+            )
+        self.assertEqual(resp_a.status_code, 200)
+        id_a = resp_a.json()["meta"]["analysis_id"]
+
+        # Bob analyzes a PCAP
+        with open(sample_pcap, "rb") as f:
+            resp_b = self.client.post(
+                "/api/analyze?run_ml=false",
+                files={"file": ("bob_capture.pcap", f, "application/vnd.tcpdump.pcap")},
+                headers={"Authorization": f"Bearer {token_b}"},
+            )
+        self.assertEqual(resp_b.status_code, 200)
+        id_b = resp_b.json()["meta"]["analysis_id"]
+
+        # Alice's history should contain ONLY Alice's analysis
+        hist_a = self.client.get("/api/history", headers={"Authorization": f"Bearer {token_a}"}).json()
+        ids_in_a = [item["id"] for item in hist_a["items"]]
+        self.assertIn(id_a, ids_in_a)
+        self.assertNotIn(id_b, ids_in_a)
+
+        # Bob's history should contain ONLY Bob's analysis
+        hist_b = self.client.get("/api/history", headers={"Authorization": f"Bearer {token_b}"}).json()
+        ids_in_b = [item["id"] for item in hist_b["items"]]
+        self.assertIn(id_b, ids_in_b)
+        self.assertNotIn(id_a, ids_in_b)
+
+        # Alice trying to view Bob's analysis directly by ID is forbidden (403)
+        view_b_by_a = self.client.get(f"/api/history/{id_b}", headers={"Authorization": f"Bearer {token_a}"})
+        self.assertEqual(view_b_by_a.status_code, 403)
+
+        # Admin history contains ALL analysts' investigations
+        hist_admin = self.client.get("/api/history", headers={"Authorization": f"Bearer {admin_token}"}).json()
+        ids_in_admin = [item["id"] for item in hist_admin["items"]]
+        self.assertIn(id_a, ids_in_admin)
+        self.assertIn(id_b, ids_in_admin)
+
+        # Admin can view both analyses by ID
+        self.assertEqual(self.client.get(f"/api/history/{id_a}", headers={"Authorization": f"Bearer {admin_token}"}).status_code, 200)
+        self.assertEqual(self.client.get(f"/api/history/{id_b}", headers={"Authorization": f"Bearer {admin_token}"}).status_code, 200)
 
 
 if __name__ == "__main__":

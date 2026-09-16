@@ -5,7 +5,7 @@ Authentication and user lifecycle REST endpoints:
 - User login (JSON & OAuth2 form)
 - Current user profile (/me)
 - User management (Admin only)
-- Audit log explorer (Admin & Lead Analyst)
+- Audit log explorer (Admin only)
 """
 
 from __future__ import annotations
@@ -69,7 +69,7 @@ class TokenResponse(BaseModel):
 
 
 class UserUpdateRequest(BaseModel):
-    role: Optional[str] = Field(None, pattern=r"^(admin|lead_analyst|analyst|auditor)$")
+    role: Optional[str] = Field(None, pattern=r"^(admin|analyst)$")
     is_active: Optional[bool] = None
 
 
@@ -283,12 +283,12 @@ def update_user(
     return UserResponse(**target_user.to_dict())
 
 
-@auth_router.get("/audit-logs", summary="List forensic audit logs (Admin & Lead Analyst)")
+@auth_router.get("/audit-logs", summary="List forensic audit logs (Admin only)")
 def get_audit_logs(
     limit: int = 100,
     offset: int = 0,
     db: Session = Depends(get_db),
-    _authorized_user: User = Depends(require_role("admin", "lead_analyst")),
+    _authorized_user: User = Depends(require_role("admin")),
 ):
     """View forensic audit trail of all platform activities."""
     logs = (
