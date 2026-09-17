@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import PostureGauge from './PostureGauge.jsx'
 import RiskMatrix from './RiskMatrix.jsx'
 import SessionTable from './SessionTable.jsx'
@@ -402,6 +402,17 @@ function EnterpriseExplanationPanel({ explanation, policy, engineVersion, schema
 export default function AnalysisPage({ result, analysisMs, onToast, currentUser, token, onTriageUpdated }) {
   const [activeTab, setActiveTab] = useState('sessions')
   const [digestCopied, setDigestCopied] = useState(false)
+
+  // Ensure user sees the top portion (KPI strip, Command Deck, Posture Gauge) when analysis is done
+  useEffect(() => {
+    try {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+    } catch {
+      window.scrollTo(0, 0)
+    }
+    if (document.documentElement) document.documentElement.scrollTop = 0
+    if (document.body) document.body.scrollTop = 0
+  }, [result])
 
   const ev = result?.evidence || {}
   const epi = result?.enterprise_posture_index ?? 0

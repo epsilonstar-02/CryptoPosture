@@ -3,7 +3,8 @@
    Ref: .agent/skills/DESIGN.md & SKILL.md
    ============================================================= */
 
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=JetBrains+Mono:wght@400;500;600&family=Outfit:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400..700;1,9..40,400..700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Nunito:wght@500;600;700;800&family=Outfit:wght@400;500;600;700;800&display=swap');
+
 
 /* ─── CSS Custom Properties: Palettes & Themes ─── */
 :root,
@@ -12,10 +13,10 @@
   --bg-primary: #100d0a;
   --bg-secondary: #1c1510;
   --bg-void: #100d0a;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(16, 13, 10, 0.58);
+  --bg-panel-hover: rgba(28, 21, 16, 0.68);
+  --bg-glass: rgba(16, 13, 10, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #f59e0b;
   --accent-secondary: #c2410c;
@@ -23,9 +24,9 @@
   --blob-2: #c2410c;
   --blob-3: #78350f;
 
-  --text-primary: rgba(255, 248, 240, 0.95);
-  --text-secondary: rgba(255, 235, 210, 0.65);
-  --text-muted: rgba(255, 220, 180, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 248, 240, 0.85);
+  --text-muted: rgba(255, 235, 210, 0.68);
   --text-accent: #f59e0b;
 
   --accent-blue: #f59e0b;
@@ -40,10 +41,10 @@
   --bg-primary: #030d1a;
   --bg-secondary: #08182b;
   --bg-void: #030d1a;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(3, 13, 26, 0.58);
+  --bg-panel-hover: rgba(8, 24, 43, 0.68);
+  --bg-glass: rgba(3, 13, 26, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #06b6d4;
   --accent-secondary: #0ea5e9;
@@ -51,9 +52,9 @@
   --blob-2: #0ea5e9;
   --blob-3: #6366f1;
 
-  --text-primary: rgba(240, 249, 255, 0.95);
-  --text-secondary: rgba(210, 235, 255, 0.65);
-  --text-muted: rgba(180, 215, 245, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(224, 242, 254, 0.85);
+  --text-muted: rgba(186, 230, 253, 0.68);
   --text-accent: #38bdf8;
 
   --accent-blue: #06b6d4;
@@ -68,10 +69,10 @@
   --bg-primary: #051a0a;
   --bg-secondary: #0c2613;
   --bg-void: #051a0a;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(5, 26, 10, 0.58);
+  --bg-panel-hover: rgba(12, 38, 19, 0.68);
+  --bg-glass: rgba(5, 26, 10, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #10b981;
   --accent-secondary: #d4af37;
@@ -79,9 +80,9 @@
   --blob-2: #d4af37;
   --blob-3: #065f46;
 
-  --text-primary: rgba(240, 255, 244, 0.95);
-  --text-secondary: rgba(210, 250, 220, 0.65);
-  --text-muted: rgba(180, 235, 195, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(220, 252, 231, 0.85);
+  --text-muted: rgba(187, 247, 208, 0.68);
   --text-accent: #10b981;
 
   --accent-blue: #10b981;
@@ -96,10 +97,10 @@
   --bg-primary: #1a0a0a;
   --bg-secondary: #261111;
   --bg-void: #1a0a0a;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(26, 10, 10, 0.58);
+  --bg-panel-hover: rgba(38, 17, 17, 0.68);
+  --bg-glass: rgba(26, 10, 10, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #f97316;
   --accent-secondary: #ec4899;
@@ -107,9 +108,9 @@
   --blob-2: #ec4899;
   --blob-3: #f59e0b;
 
-  --text-primary: rgba(255, 242, 242, 0.95);
-  --text-secondary: rgba(255, 215, 215, 0.65);
-  --text-muted: rgba(240, 185, 185, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 237, 213, 0.85);
+  --text-muted: rgba(254, 215, 170, 0.68);
   --text-accent: #f97316;
 
   --accent-blue: #f97316;
@@ -124,10 +125,10 @@
   --bg-primary: #1a0e1c;
   --bg-secondary: #251428;
   --bg-void: #1a0e1c;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(26, 14, 28, 0.58);
+  --bg-panel-hover: rgba(37, 20, 40, 0.68);
+  --bg-glass: rgba(26, 14, 28, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #c084fc;
   --accent-secondary: #f472b6;
@@ -135,9 +136,9 @@
   --blob-2: #f472b6;
   --blob-3: #818cf8;
 
-  --text-primary: rgba(252, 240, 255, 0.95);
-  --text-secondary: rgba(235, 210, 245, 0.65);
-  --text-muted: rgba(215, 180, 230, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(243, 232, 255, 0.85);
+  --text-muted: rgba(233, 213, 255, 0.68);
   --text-accent: #c084fc;
 
   --accent-blue: #c084fc;
@@ -152,10 +153,10 @@
   --bg-primary: #030712;
   --bg-secondary: #081226;
   --bg-void: #030712;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(3, 7, 18, 0.58);
+  --bg-panel-hover: rgba(8, 18, 38, 0.68);
+  --bg-glass: rgba(3, 7, 18, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #00f0ff;
   --accent-secondary: #2563eb;
@@ -163,9 +164,9 @@
   --blob-2: #2563eb;
   --blob-3: #0284c7;
 
-  --text-primary: rgba(240, 249, 255, 0.95);
-  --text-secondary: rgba(186, 230, 253, 0.65);
-  --text-muted: rgba(125, 211, 252, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(224, 242, 254, 0.85);
+  --text-muted: rgba(186, 230, 253, 0.68);
   --text-accent: #00f0ff;
 
   --accent-blue: #00f0ff;
@@ -180,10 +181,10 @@
   --bg-primary: #02100e;
   --bg-secondary: #06231e;
   --bg-void: #02100e;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(2, 16, 14, 0.58);
+  --bg-panel-hover: rgba(6, 35, 30, 0.68);
+  --bg-glass: rgba(2, 16, 14, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #2dd4bf;
   --accent-secondary: #0d9488;
@@ -191,9 +192,9 @@
   --blob-2: #2dd4bf;
   --blob-3: #0f766e;
 
-  --text-primary: rgba(240, 253, 250, 0.95);
-  --text-secondary: rgba(153, 246, 228, 0.65);
-  --text-muted: rgba(94, 234, 212, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(204, 251, 241, 0.85);
+  --text-muted: rgba(153, 246, 228, 0.68);
   --text-accent: #2dd4bf;
 
   --accent-blue: #2dd4bf;
@@ -208,10 +209,10 @@
   --bg-primary: #0d0408;
   --bg-secondary: #1a0810;
   --bg-void: #0d0408;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(13, 4, 8, 0.58);
+  --bg-panel-hover: rgba(26, 8, 16, 0.68);
+  --bg-glass: rgba(13, 4, 8, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #fb7185;
   --accent-secondary: #e11d48;
@@ -219,9 +220,9 @@
   --blob-2: #8b5cf6;
   --blob-3: #e11d48;
 
-  --text-primary: rgba(255, 241, 242, 0.95);
-  --text-secondary: rgba(254, 205, 211, 0.65);
-  --text-muted: rgba(253, 164, 175, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(254, 226, 226, 0.85);
+  --text-muted: rgba(254, 202, 202, 0.68);
   --text-accent: #fb7185;
 
   --accent-blue: #fb7185;
@@ -236,10 +237,10 @@
   --bg-primary: #080414;
   --bg-secondary: #14092b;
   --bg-void: #080414;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(8, 4, 20, 0.58);
+  --bg-panel-hover: rgba(20, 9, 43, 0.68);
+  --bg-glass: rgba(8, 4, 20, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #a855f7;
   --accent-secondary: #6366f1;
@@ -247,9 +248,9 @@
   --blob-2: #a855f7;
   --blob-3: #4f46e5;
 
-  --text-primary: rgba(250, 245, 255, 0.95);
-  --text-secondary: rgba(233, 213, 255, 0.65);
-  --text-muted: rgba(216, 180, 254, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(243, 232, 255, 0.85);
+  --text-muted: rgba(233, 213, 255, 0.68);
   --text-accent: #a855f7;
 
   --accent-blue: #a855f7;
@@ -264,10 +265,10 @@
   --bg-primary: #011116;
   --bg-secondary: #03212b;
   --bg-void: #011116;
-  --bg-panel: rgba(255, 255, 255, 0.08);
-  --bg-panel-hover: rgba(255, 255, 255, 0.13);
-  --bg-glass: rgba(255, 255, 255, 0.08);
-  --bg-input: rgba(255, 255, 255, 0.06);
+  --bg-panel: rgba(1, 17, 22, 0.58);
+  --bg-panel-hover: rgba(3, 33, 43, 0.68);
+  --bg-glass: rgba(1, 17, 22, 0.58);
+  --bg-input: rgba(0, 0, 0, 0.35);
 
   --accent-primary: #10b981;
   --accent-secondary: #06b6d4;
@@ -275,9 +276,9 @@
   --blob-2: #06b6d4;
   --blob-3: #3b82f6;
 
-  --text-primary: rgba(240, 253, 250, 0.95);
-  --text-secondary: rgba(167, 243, 208, 0.65);
-  --text-muted: rgba(110, 231, 183, 0.40);
+  --text-primary: #ffffff;
+  --text-secondary: rgba(209, 250, 229, 0.85);
+  --text-muted: rgba(167, 243, 208, 0.68);
   --text-accent: #10b981;
 
   --accent-blue: #06b6d4;
@@ -287,17 +288,270 @@
   --accent-glow: rgba(16, 185, 129, 0.22);
 }
 
+/* =============================================================
+   Neumorphic / Soft UI Palettes & Token System
+   Ref: .agent/skills/neuromorphic/DESIGN.md & SKILL.md
+   Key rule: Every element's background MUST match the surface background exactly!
+   ============================================================= */
+
+/* 1. Stone Lavender (Canonical Soft UI — Light Mode Default) */
+[data-style="neumorphic"],
+[data-style="neumorphic"][data-theme="stone-lavender"] {
+  --surface: #e0e5ec;
+  --surface-deep: #d1d9e6;
+  --surface-raised: #e8edf4;
+
+  --bg-primary: #e0e5ec;
+  --bg-secondary: #d1d9e6;
+  --bg-void: #e0e5ec;
+  --bg-panel: #e0e5ec;
+  --bg-panel-hover: #e8edf4;
+  --bg-glass: #e0e5ec;
+  --bg-input: #e0e5ec;
+
+  --shadow-light: rgba(255, 255, 255, 0.85);
+  --shadow-dark: rgba(163, 177, 198, 0.60);
+
+  --accent-primary: #9b72cf;
+  --accent-secondary: #c084fc;
+  --accent-blue: #9b72cf;
+  --accent-violet: #8b5cf6;
+  --accent-cyan: #7c3aed;
+  --accent-green: #059669;
+  --accent-glow: rgba(155, 114, 207, 0.28);
+
+  --text-primary: #334155;
+  --text-secondary: #64748b;
+  --text-muted: #94a3b8;
+  --text-accent: #7c3aed;
+
+  --risk-critical: #dc2626;
+  --risk-high: #ea580c;
+  --risk-medium: #d97706;
+  --risk-low: #059669;
+
+  --risk-critical-bg: #fee2e2;
+  --risk-high-bg: #ffedd5;
+  --risk-medium-bg: #fef3c7;
+  --risk-low-bg: #d1fae5;
+}
+
+/* 2. Slate Mist (Light Mode — Technical Cyber) */
+[data-style="neumorphic"][data-theme="slate-mist"] {
+  --surface: #d8dce6;
+  --surface-deep: #c9cfdc;
+  --surface-raised: #e2e6f0;
+
+  --bg-primary: #d8dce6;
+  --bg-secondary: #c9cfdc;
+  --bg-void: #d8dce6;
+  --bg-panel: #d8dce6;
+  --bg-panel-hover: #e2e6f0;
+  --bg-glass: #d8dce6;
+  --bg-input: #d8dce6;
+
+  --shadow-light: rgba(255, 255, 255, 0.88);
+  --shadow-dark: rgba(150, 160, 180, 0.58);
+
+  --accent-primary: #00b4d8;
+  --accent-secondary: #0077b6;
+  --accent-blue: #00b4d8;
+  --accent-violet: #6366f1;
+  --accent-cyan: #0284c7;
+  --accent-green: #059669;
+  --accent-glow: rgba(0, 180, 216, 0.28);
+
+  --text-primary: #1e293b;
+  --text-secondary: #475569;
+  --text-muted: #8492a6;
+  --text-accent: #0284c7;
+
+  --risk-critical: #dc2626;
+  --risk-high: #ea580c;
+  --risk-medium: #d97706;
+  --risk-low: #059669;
+
+  --risk-critical-bg: #fee2e2;
+  --risk-high-bg: #ffedd5;
+  --risk-medium-bg: #fef3c7;
+  --risk-low-bg: #d1fae5;
+}
+
+/* 3. Warm Linen (Light Mode — Tactile Warmth) */
+[data-style="neumorphic"][data-theme="warm-linen"] {
+  --surface: #e8e1d9;
+  --surface-deep: #dcd4cb;
+  --surface-raised: #f2ece4;
+
+  --bg-primary: #e8e1d9;
+  --bg-secondary: #dcd4cb;
+  --bg-void: #e8e1d9;
+  --bg-panel: #e8e1d9;
+  --bg-panel-hover: #f2ece4;
+  --bg-glass: #e8e1d9;
+  --bg-input: #e8e1d9;
+
+  --shadow-light: rgba(255, 255, 255, 0.90);
+  --shadow-dark: rgba(175, 165, 155, 0.58);
+
+  --accent-primary: #d97706;
+  --accent-secondary: #ea580c;
+  --accent-blue: #d97706;
+  --accent-violet: #c2410c;
+  --accent-cyan: #b45309;
+  --accent-green: #059669;
+  --accent-glow: rgba(217, 119, 6, 0.28);
+
+  --text-primary: #3d352e;
+  --text-secondary: #665b51;
+  --text-muted: #998b7e;
+  --text-accent: #b45309;
+
+  --risk-critical: #dc2626;
+  --risk-high: #ea580c;
+  --risk-medium: #d97706;
+  --risk-low: #059669;
+
+  --risk-critical-bg: #fee2e2;
+  --risk-high-bg: #ffedd5;
+  --risk-medium-bg: #fef3c7;
+  --risk-low-bg: #d1fae5;
+}
+
+/* 4. Midnight SOC (Dark Mode — Canonical Dark Neumorphism) */
+[data-style="neumorphic"][data-theme="midnight-soc"] {
+  --surface: #1e2228;
+  --surface-deep: #16191e;
+  --surface-raised: #252b33;
+
+  --bg-primary: #1e2228;
+  --bg-secondary: #16191e;
+  --bg-void: #1e2228;
+  --bg-panel: #1e2228;
+  --bg-panel-hover: #252b33;
+  --bg-glass: #1e2228;
+  --bg-input: #1e2228;
+
+  --shadow-light: rgba(50, 60, 75, 0.70);
+  --shadow-dark: rgba(0, 0, 0, 0.60);
+
+  --accent-primary: #00f0ff;
+  --accent-secondary: #38bdf8;
+  --accent-blue: #00f0ff;
+  --accent-violet: #818cf8;
+  --accent-cyan: #38bdf8;
+  --accent-green: #34d399;
+  --accent-glow: rgba(0, 240, 255, 0.28);
+
+  --text-primary: #c8d0e7;
+  --text-secondary: #8892a4;
+  --text-muted: #5a6478;
+  --text-accent: #00f0ff;
+
+  --risk-critical: #f87171;
+  --risk-high: #fb923c;
+  --risk-medium: #fbbf24;
+  --risk-low: #34d399;
+
+  --risk-critical-bg: rgba(248, 113, 113, 0.15);
+  --risk-high-bg: rgba(251, 146, 60, 0.15);
+  --risk-medium-bg: rgba(251, 191, 36, 0.15);
+  --risk-low-bg: rgba(52, 211, 153, 0.15);
+}
+
+/* 5. Graphite Kyber (Dark Mode — Matrix PQC) */
+[data-style="neumorphic"][data-theme="graphite-kyber"] {
+  --surface: #282c34;
+  --surface-deep: #20232a;
+  --surface-raised: #2f343e;
+
+  --bg-primary: #282c34;
+  --bg-secondary: #20232a;
+  --bg-void: #282c34;
+  --bg-panel: #282c34;
+  --bg-panel-hover: #2f343e;
+  --bg-glass: #282c34;
+  --bg-input: #282c34;
+
+  --shadow-light: rgba(58, 64, 76, 0.70);
+  --shadow-dark: rgba(16, 18, 22, 0.65);
+
+  --accent-primary: #2dd4bf;
+  --accent-secondary: #14b8a6;
+  --accent-blue: #2dd4bf;
+  --accent-violet: #38bdf8;
+  --accent-cyan: #5eead4;
+  --accent-green: #34d399;
+  --accent-glow: rgba(45, 212, 191, 0.28);
+
+  --text-primary: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --text-accent: #2dd4bf;
+
+  --risk-critical: #f87171;
+  --risk-high: #fb923c;
+  --risk-medium: #fbbf24;
+  --risk-low: #34d399;
+
+  --risk-critical-bg: rgba(248, 113, 113, 0.15);
+  --risk-high-bg: rgba(251, 146, 60, 0.15);
+  --risk-medium-bg: rgba(251, 191, 36, 0.15);
+  --risk-low-bg: rgba(52, 211, 153, 0.15);
+}
+
+/* 6. Zero Trust Dark (Dark Mode — Incident Red) */
+[data-style="neumorphic"][data-theme="zero-trust-neu"] {
+  --surface: #1a1618;
+  --surface-deep: #131012;
+  --surface-raised: #221e20;
+
+  --bg-primary: #1a1618;
+  --bg-secondary: #131012;
+  --bg-void: #1a1618;
+  --bg-panel: #1a1618;
+  --bg-panel-hover: #221e20;
+  --bg-glass: #1a1618;
+  --bg-input: #1a1618;
+
+  --shadow-light: rgba(46, 38, 42, 0.75);
+  --shadow-dark: rgba(0, 0, 0, 0.70);
+
+  --accent-primary: #fb7185;
+  --accent-secondary: #e11d48;
+  --accent-blue: #fb7185;
+  --accent-violet: #f43f5e;
+  --accent-cyan: #fda4af;
+  --accent-green: #34d399;
+  --accent-glow: rgba(251, 113, 133, 0.28);
+
+  --text-primary: #fff1f2;
+  --text-secondary: #fda4af;
+  --text-muted: #9f7378;
+  --text-accent: #fb7185;
+
+  --risk-critical: #f87171;
+  --risk-high: #fb923c;
+  --risk-medium: #fbbf24;
+  --risk-low: #34d399;
+
+  --risk-critical-bg: rgba(248, 113, 113, 0.15);
+  --risk-high-bg: rgba(251, 146, 60, 0.15);
+  --risk-medium-bg: rgba(251, 191, 36, 0.15);
+  --risk-low-bg: rgba(52, 211, 153, 0.15);
+}
+
 /* ─── Global Glassmorphism Tokens ─── */
 :root {
-  /* Core Glass Formula: White-neutral (background shines through) */
-  --glass-bg: rgba(255, 255, 255, 0.08);
-  --glass-bg-hover: rgba(255, 255, 255, 0.13);
-  --glass-border: rgba(255, 255, 255, 0.12);
-  --glass-border-hover: rgba(255, 255, 255, 0.22);
-  --glass-blur: blur(20px) saturate(180%);
-  --glass-specular: 0 1px 0 0 rgba(255, 255, 255, 0.20) inset;
-  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
-  --glass-shadow-hover: 0 20px 60px rgba(0, 0, 0, 0.50);
+  /* Core Glass Formula: Luminous Frosted Glass with Specular Bevel & Ambient Sheen */
+  --glass-bg: linear-gradient(135deg, rgba(255, 255, 255, 0.11) 0%, rgba(255, 255, 255, 0.02) 100%), rgba(9, 15, 23, 0.58);
+  --glass-bg-hover: linear-gradient(135deg, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0.04) 100%), rgba(13, 20, 32, 0.66);
+  --glass-border: rgba(255, 255, 255, 0.16);
+  --glass-border-hover: rgba(255, 255, 255, 0.30);
+  --glass-blur: blur(24px) saturate(190%);
+  --glass-specular: 0 1px 0 0 rgba(255, 255, 255, 0.28) inset, 0 0 16px -4px var(--accent-glow);
+  --glass-shadow: 0 16px 48px rgba(0, 0, 0, 0.38);
+  --glass-shadow-hover: 0 24px 64px rgba(0, 0, 0, 0.50), 0 0 24px var(--accent-glow);
 
   /* Borders */
   --border-dim: rgba(255, 255, 255, 0.10);
@@ -337,6 +591,29 @@
   --shadow-glow:  0 0 28px var(--accent-glow);
 }
 
+[data-style="neumorphic"] {
+  /* Typography overrides (Nunito headings + Inter body per DESIGN.md & SKILL.md) */
+  --font-ui:      'Inter', 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Nunito', 'Outfit', sans-serif;
+  --font-mono:    'JetBrains Mono', 'Fira Code', monospace;
+
+  /* Neumorphic Dual-Shadow Token System */
+  --shadow-soft-raised: -6px -6px 14px var(--shadow-light),  6px  6px 14px var(--shadow-dark);
+  --shadow-soft-flat:   -2px -2px 5px  var(--shadow-light),  2px  2px 5px  var(--shadow-dark);
+  --shadow-soft-inset:  inset -4px -4px 10px var(--shadow-light), inset 4px 4px 10px var(--shadow-dark);
+  --shadow-md-raised:   -8px -8px 18px var(--shadow-light),  8px  8px 18px var(--shadow-dark);
+  --shadow-md-inset:    inset -6px -6px 14px var(--shadow-light), inset 6px 6px 14px var(--shadow-dark);
+  --shadow-bold-raised: -12px -12px 24px var(--shadow-light), 12px 12px 24px var(--shadow-dark);
+
+  /* Animation Tokens */
+  --t-press: 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  --t-lift:  0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+  --t-smooth: 0.25s ease;
+
+  /* Overwrite glass tokens */
+  --shadow-panel: var(--shadow-soft-raised);
+}
+
 /* ─── Resets ─── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 html { scroll-behavior: smooth; }
@@ -361,12 +638,21 @@ body {
   pointer-events: none;
 }
 
+.bg-scene::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 50% 25%, transparent 35%, rgba(4, 7, 12, 0.28) 75%, rgba(4, 7, 12, 0.55) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
 .blob {
   position: absolute;
   border-radius: 50%;
-  filter: blur(95px);
-  opacity: 0.50;
-  animation: blob-float 12s ease-in-out infinite alternate;
+  filter: blur(100px);
+  opacity: 0.38;
+  animation: blob-float 14s ease-in-out infinite alternate;
   will-change: transform;
 }
 
@@ -452,13 +738,42 @@ code, .mono { font-family: var(--font-mono); }
   z-index: 150;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 var(--page-px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-  background: rgba(255, 255, 255, 0.05);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.08) inset;
-  gap: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.14);
+  background: linear-gradient(180deg, rgba(8, 14, 22, 0.80) 0%, rgba(8, 14, 22, 0.65) 100%);
+  backdrop-filter: blur(28px) saturate(200%);
+  -webkit-backdrop-filter: blur(28px) saturate(200%);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.16) inset, 0 8px 32px rgba(0, 0, 0, 0.32);
+  gap: 16px;
+}
+
+.topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-shrink: 0;
+}
+
+.topbar-actions {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.topbar-cluster {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar-actions-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.14);
+  margin: 0 3px;
+  flex-shrink: 0;
 }
 
 .topbar-brand {
@@ -537,7 +852,19 @@ code, .mono { font-family: var(--font-mono); }
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
+}
+
+.topbar-actions-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(255, 255, 255, 0.12);
+  margin: 0 2px;
+  flex-shrink: 0;
+}
+
+[data-style="neumorphic"] .topbar-actions-sep {
+  background: var(--border-subtle) !important;
 }
 
 .api-state {
@@ -561,6 +888,74 @@ code, .mono { font-family: var(--font-mono); }
 .api-state--online  b { background: var(--accent-green); box-shadow: 0 0 8px var(--accent-green); }
 .api-state--loading b { background: var(--risk-medium); animation: pulse-dot 0.9s infinite; }
 .api-state--offline b { background: var(--risk-critical); }
+
+/* ─── Topbar Style Mode Switcher ─── */
+.style-mode-switcher {
+  display: inline-flex;
+  align-items: center;
+  height: 34px;
+  padding: 3px;
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.07);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.20) inset, 0 4px 12px rgba(0, 0, 0, 0.25);
+  gap: 3px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.style-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: var(--radius-pill);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-ui);
+  font-size: 0.74rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.style-mode-btn:hover {
+  color: var(--text-primary);
+}
+
+.style-mode-btn--active {
+  background: var(--accent-primary);
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px var(--accent-glow);
+}
+
+[data-style="neumorphic"] .style-mode-switcher {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-style="neumorphic"] .style-mode-btn {
+  color: var(--text-muted);
+}
+
+[data-style="neumorphic"] .style-mode-btn:hover {
+  color: var(--text-primary);
+}
+
+[data-style="neumorphic"] .style-mode-btn--active {
+  background: var(--surface) !important;
+  color: var(--accent-primary) !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  font-weight: 700;
+}
 
 /* ─── Topbar Action Glass Pills ─── */
 .palette-menu-container {
@@ -874,19 +1269,22 @@ code, .mono { font-family: var(--font-mono); }
 .kpi-item:last-child { border-right: none; }
 
 .kpi-label {
-  font: 600 0.80rem var(--font-mono);
+  font: 700 0.80rem var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.88);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
 }
 .kpi-value {
   font: 800 1.7rem var(--font-heading);
   line-height: 1.1;
   letter-spacing: -0.02em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 .kpi-sub {
   font: 500 0.85rem var(--font-ui);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.75);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 .kpi-value--critical { color: var(--risk-critical); }
@@ -2180,17 +2578,21 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   font-weight: 900;
   color: var(--text-primary);
   letter-spacing: -0.055em;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
 }
 
 .header-seal {
   border: 1px solid var(--border-mid);
+  background: rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 6px 10px;
   display: flex;
   gap: 7px;
   align-items: center;
   font: 600 0.80rem var(--font-mono);
   letter-spacing: 0.12em;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   border-radius: 4px;
   flex-shrink: 0;
 }
@@ -2198,7 +2600,8 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 
 .page-subtitle {
   font: 500 0.95rem var(--font-mono);
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
   position: relative;
   z-index: 1;
   margin-bottom: 22px;
@@ -2744,8 +3147,11 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 }
 
 .command-deck-card {
-  background: var(--bg-panel);
-  border: 1px solid var(--border-dim);
+  background: var(--glass-bg);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-specular), 0 8px 32px rgba(0, 0, 0, 0.35);
   border-radius: var(--radius-lg);
   padding: 16px 18px;
   display: flex;
@@ -2756,8 +3162,8 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   height: 100%;
 }
 .command-deck-card:hover {
-  border-color: var(--border-mid);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: var(--glass-border-hover);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 
 .deck-card-header {
@@ -2773,7 +3179,8 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
   font: 700 0.87rem var(--font-mono);
   letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.92);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .deck-card-body {
@@ -2841,7 +3248,7 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 
 /* Deck Evidence Card */
 .deck-card-evidence {
-  background: radial-gradient(ellipse 90% 90% at 85% 15%, rgba(61, 216, 232, 0.04), var(--bg-panel));
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.04) 0%, rgba(255, 255, 255, 0.01) 100%), rgba(8, 14, 20, 0.82);
 }
 
 .deck-evidence-body {
@@ -2868,7 +3275,7 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 
 .deck-hash-label {
   font: 600 0.83rem var(--font-mono);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.78);
   letter-spacing: 0.08em;
 }
 
@@ -2880,22 +3287,23 @@ table.session-table tbody tr.expanded td.td-chevron   { color: var(--accent-blue
 }
 
 .deck-stat {
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(0, 0, 0, 0.28);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--radius-sm);
   padding: 6px 10px;
 }
 
 .deck-stat-label {
   font: 600 0.81rem var(--font-mono);
-  color: var(--text-muted);
+  color: rgba(255, 255, 255, 0.78);
   text-transform: uppercase;
 }
 
 .deck-stat-val {
   font: 700 1.01rem var(--font-mono);
-  color: var(--text-primary);
+  color: #ffffff;
   margin-top: 2px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
 }
 
 .deck-evidence-id {
@@ -5758,4 +6166,1149 @@ table.session-table tbody tr:nth-child(even) {
   }
 }
 
+/* =============================================================
+   Neumorphic (Soft UI) Global Component Styling System
+   Ref: .agent/skills/neuromorphic/DESIGN.md & SKILL.md
+   
+   Hard Rules:
+   1. Surface color matching: element background == var(--surface)
+   2. Zero borders: border: none !important (shadows alone define edges)
+   3. Dual shadows: top-left highlight + bottom-right shade
+   4. Tactile interactive feedback: raised idle -> inset pressed
+   5. Headings in rounded geometric Nunito, body in clean Inter
+   6. Accent rationed strictly to active states & primary CTA
+   ============================================================= */
 
+/* ── 1. Page Background & Typography ── */
+[data-style="neumorphic"] body,
+[data-style="neumorphic"] .app-shell,
+[data-style="neumorphic"] .main-content {
+  background-color: var(--surface) !important;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+}
+
+[data-style="neumorphic"] .bg-scene {
+  display: none !important;
+}
+
+[data-style="neumorphic"] h1,
+[data-style="neumorphic"] h2,
+[data-style="neumorphic"] h3,
+[data-style="neumorphic"] h4,
+[data-style="neumorphic"] h5,
+[data-style="neumorphic"] h6,
+[data-style="neumorphic"] .topbar-brand,
+[data-style="neumorphic"] .hero-title,
+[data-style="neumorphic"] .section-title,
+[data-style="neumorphic"] .findings-title,
+[data-style="neumorphic"] .feature-section-title {
+  font-family: var(--font-heading);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+/* ── 2. Topbar Navigation ── */
+[data-style="neumorphic"] .topbar,
+[data-style="neumorphic"] .glass-nav {
+  background: var(--surface) !important;
+  border-bottom: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: 0 4px 16px var(--shadow-dark) !important;
+}
+
+[data-style="neumorphic"] .topbar-mark {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+}
+
+[data-style="neumorphic"] .topbar-sep,
+[data-style="neumorphic"] .topbar-context i {
+  background: var(--shadow-dark) !important;
+  opacity: 0.4;
+}
+
+[data-style="neumorphic"] .api-state {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--text-secondary) !important;
+}
+
+/* ── 3. Raised Panels, Cards & Containers ── */
+[data-style="neumorphic"] .panel,
+[data-style="neumorphic"] .glass-card,
+[data-style="neumorphic"] .feature-card,
+[data-style="neumorphic"] .sandbox-card,
+[data-style="neumorphic"] .audit-card,
+[data-style="neumorphic"] .kpi-card,
+[data-style="neumorphic"] .hero-terminal,
+[data-style="neumorphic"] .findings-card,
+[data-style="neumorphic"] .triage-card,
+[data-style="neumorphic"] .narrative-card,
+[data-style="neumorphic"] .evidence-banner,
+[data-style="neumorphic"] .kpi-strip,
+[data-style="neumorphic"] .gauge-card,
+[data-style="neumorphic"] .export-card,
+[data-style="neumorphic"] .provenance-card,
+[data-style="neumorphic"] .risk-matrix,
+[data-style="neumorphic"] .risk-card,
+[data-style="neumorphic"] .findings-detail-sheet,
+[data-style="neumorphic"] .session-drawer-sheet,
+[data-style="neumorphic"] .history-drawer-sheet,
+[data-style="neumorphic"] .modal-sheet,
+[data-style="neumorphic"] .auth-modal-dialog,
+[data-style="neumorphic"] .admin-modal-box,
+[data-style="neumorphic"] .analyst-workspace-box {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  border-radius: var(--radius-lg);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: transform var(--t-smooth), box-shadow var(--t-smooth);
+}
+
+[data-style="neumorphic"] .feature-card:hover,
+[data-style="neumorphic"] .sandbox-card:hover,
+[data-style="neumorphic"] .audit-card:hover,
+[data-style="neumorphic"] .kpi-card:hover,
+[data-style="neumorphic"] .findings-card:hover,
+[data-style="neumorphic"] .triage-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md-raised) !important;
+}
+
+/* ── 4. Inset Wells (Inputs, Search, Tables, Intakes, Code, Logs) ── */
+[data-style="neumorphic"] input,
+[data-style="neumorphic"] textarea,
+[data-style="neumorphic"] select,
+[data-style="neumorphic"] .search-input,
+[data-style="neumorphic"] .case-intake,
+[data-style="neumorphic"] .audit-table-wrap,
+[data-style="neumorphic"] .session-table-wrap,
+[data-style="neumorphic"] .telemetry-rows,
+[data-style="neumorphic"] .terminal-stat,
+[data-style="neumorphic"] .findings-filter-bar,
+[data-style="neumorphic"] .export-preview,
+[data-style="neumorphic"] .export-code-block,
+[data-style="neumorphic"] pre,
+[data-style="neumorphic"] code.block,
+[data-style="neumorphic"] .mono-box,
+[data-style="neumorphic"] .evidence-meta-strip,
+[data-style="neumorphic"] .narrative-summary-well,
+[data-style="neumorphic"] .terminal-rings {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+[data-style="neumorphic"] input::placeholder,
+[data-style="neumorphic"] textarea::placeholder {
+  color: var(--text-muted);
+}
+
+[data-style="neumorphic"] input:focus,
+[data-style="neumorphic"] textarea:focus,
+[data-style="neumorphic"] select:focus,
+[data-style="neumorphic"] .search-input:focus-within {
+  box-shadow: var(--shadow-soft-inset), 0 0 0 3px var(--accent-glow) !important;
+}
+
+[data-style="neumorphic"] .case-intake:hover {
+  box-shadow: var(--shadow-md-inset) !important;
+}
+
+[data-style="neumorphic"] .case-intake--drag {
+  box-shadow: var(--shadow-md-inset), 0 0 0 3px var(--accent-primary) !important;
+}
+
+/* ── 5. Buttons, Tabs & Interactive Controls ── */
+[data-style="neumorphic"] .btn-secondary,
+[data-style="neumorphic"] .btn-ghost,
+[data-style="neumorphic"] .btn-palette-topbar,
+[data-style="neumorphic"] .btn-history-topbar,
+[data-style="neumorphic"] .btn-admin-topbar,
+[data-style="neumorphic"] .btn-analyst-topbar,
+[data-style="neumorphic"] .user-badge-pill-btn,
+[data-style="neumorphic"] .tab-pill,
+[data-style="neumorphic"] .analysis-tab,
+[data-style="neumorphic"] .findings-tab-btn,
+[data-style="neumorphic"] .scroll-to-sandbox-cta,
+[data-style="neumorphic"] .btn-export-copy,
+[data-style="neumorphic"] .btn-icon,
+[data-style="neumorphic"] .risk-filter-btn {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-pill);
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: box-shadow var(--t-press), transform var(--t-press), color var(--t-smooth);
+}
+
+[data-style="neumorphic"] .btn-secondary:hover,
+[data-style="neumorphic"] .btn-ghost:hover,
+[data-style="neumorphic"] .btn-palette-topbar:hover,
+[data-style="neumorphic"] .btn-history-topbar:hover,
+[data-style="neumorphic"] .btn-admin-topbar:hover,
+[data-style="neumorphic"] .btn-analyst-topbar:hover,
+[data-style="neumorphic"] .user-badge-pill-btn:hover,
+[data-style="neumorphic"] .tab-pill:hover,
+[data-style="neumorphic"] .analysis-tab:hover,
+[data-style="neumorphic"] .findings-tab-btn:hover {
+  color: var(--text-primary) !important;
+  box-shadow: var(--shadow-md-raised) !important;
+  transform: translateY(-1px);
+}
+
+[data-style="neumorphic"] .btn-secondary:active,
+[data-style="neumorphic"] .btn-ghost:active,
+[data-style="neumorphic"] .btn-palette-topbar:active,
+[data-style="neumorphic"] .btn-history-topbar:active,
+[data-style="neumorphic"] .btn-admin-topbar:active,
+[data-style="neumorphic"] .btn-analyst-topbar:active,
+[data-style="neumorphic"] .user-badge-pill-btn:active,
+[data-style="neumorphic"] .tab-pill.tab-pill--active,
+[data-style="neumorphic"] .tab-pill.active,
+[data-style="neumorphic"] .analysis-tab--active,
+[data-style="neumorphic"] .findings-tab-btn--active,
+[data-style="neumorphic"] .btn-palette-topbar--open,
+[data-style="neumorphic"] .user-badge-pill-btn--open {
+  box-shadow: var(--shadow-soft-inset) !important;
+  transform: scale(0.98);
+  color: var(--accent-primary) !important;
+  font-weight: 700 !important;
+}
+
+/* Primary CTA — flat accent fill creates intentional contrast per DESIGN.md */
+[data-style="neumorphic"] .btn-primary,
+[data-style="neumorphic"] .btn-new-case {
+  background: var(--accent-primary) !important;
+  color: #ffffff !important;
+  box-shadow: var(--shadow-soft-flat), 0 4px 14px var(--accent-glow) !important;
+  border: none !important;
+  border-radius: var(--radius-pill);
+  font-weight: 700;
+  transition: transform var(--t-press), box-shadow var(--t-press);
+}
+
+[data-style="neumorphic"] .btn-primary:hover,
+[data-style="neumorphic"] .btn-new-case:hover {
+  box-shadow: var(--shadow-md-raised), 0 6px 20px var(--accent-glow) !important;
+  transform: translateY(-1px);
+}
+
+[data-style="neumorphic"] .btn-primary:active,
+[data-style="neumorphic"] .btn-new-case:active {
+  transform: scale(0.97);
+  box-shadow: var(--shadow-soft-inset), inset 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* ── 6. Modals, Drawers & Menus ── */
+[data-style="neumorphic"] .modal-overlay,
+[data-style="neumorphic"] .drawer-overlay {
+  background: rgba(0, 0, 0, 0.45) !important;
+  backdrop-filter: blur(4px) !important;
+}
+
+[data-style="neumorphic"] .glass-menu,
+[data-style="neumorphic"] .palette-dropdown,
+[data-style="neumorphic"] .user-dropdown-menu {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-bold-raised) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-radius: var(--radius-lg);
+}
+
+[data-style="neumorphic"] .palette-dropdown-item,
+[data-style="neumorphic"] .user-dropdown-item {
+  color: var(--text-primary) !important;
+  border-radius: var(--radius-sm);
+  transition: all var(--t-smooth);
+}
+
+[data-style="neumorphic"] .palette-dropdown-item:hover,
+[data-style="neumorphic"] .user-dropdown-item:hover {
+  background: var(--surface-raised) !important;
+  box-shadow: var(--shadow-soft-flat);
+}
+
+[data-style="neumorphic"] .palette-dropdown-item--active {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ── 7. Tables, Data & Rows ── */
+[data-style="neumorphic"] .audit-table thead tr,
+[data-style="neumorphic"] .session-table thead tr {
+  background: var(--surface-deep) !important;
+  border-bottom: 1px solid var(--shadow-dark) !important;
+}
+
+[data-style="neumorphic"] .audit-table th,
+[data-style="neumorphic"] .session-table th {
+  color: var(--text-muted) !important;
+  border: none !important;
+}
+
+[data-style="neumorphic"] .audit-table td,
+[data-style="neumorphic"] .session-table td {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05) !important;
+  color: var(--text-primary);
+}
+
+[data-style="neumorphic"] .audit-table tr:hover td,
+[data-style="neumorphic"] .session-table tr:hover td {
+  background: var(--surface-raised) !important;
+}
+
+/* ── 8. Progress Bars & Indicators ── */
+[data-style="neumorphic"] .progress-track,
+[data-style="neumorphic"] .telemetry-meter,
+[data-style="neumorphic"] .risk-bar-track,
+[data-style="neumorphic"] .step-meter {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border-radius: var(--radius-pill);
+  overflow: hidden;
+}
+
+[data-style="neumorphic"] .progress-fill,
+[data-style="neumorphic"] .risk-bar-fill,
+[data-style="neumorphic"] .step-meter-fill {
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)) !important;
+  border-radius: var(--radius-pill);
+}
+
+/* ── 9. Risk Pills & Badges in Soft UI ── */
+[data-style="neumorphic"] .risk-pill,
+[data-style="neumorphic"] .policy-badge,
+[data-style="neumorphic"] .engine-sub-badge,
+[data-style="neumorphic"] .user-role-tag {
+  border: none !important;
+  box-shadow: var(--shadow-soft-flat);
+}
+
+/* ── 10. Scrollbars in Neumorphic Mode ── */
+[data-style="neumorphic"] ::-webkit-scrollbar-thumb {
+  background: var(--shadow-dark) !important;
+  border-radius: var(--radius-pill);
+}
+
+[data-style="neumorphic"] ::-webkit-scrollbar-thumb:hover {
+  background: var(--accent-primary) !important;
+}
+
+
+/* =============================================================
+   UI/UX PRO MAX POLISH LAYER
+   Source: ui-ux-pro-max skill — security forensics SOC dashboard
+   Design system: Glassmorphism | Density: 8/10 | Motion: 6/10
+   Typography rec: Fira Code / Fira Sans (monospace data, precision)
+   ============================================================= */
+
+/* ─── 1. Scroll Reveal System ─────────────────────────────────
+   GSAP-style: subtle opacity + y fade per skill (power1.out, 300-400ms)
+   Pure CSS IntersectionObserver version — no GSAP dependency.
+   ─────────────────────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  filter: blur(4px);
+  transition:
+    opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    transform 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+    filter 0.4s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+/* Stagger delays — nth-child for grid children */
+.reveal:nth-child(1) { transition-delay: 0s; }
+.reveal:nth-child(2) { transition-delay: 0.06s; }
+.reveal:nth-child(3) { transition-delay: 0.12s; }
+.reveal:nth-child(4) { transition-delay: 0.18s; }
+.reveal:nth-child(5) { transition-delay: 0.24s; }
+.reveal:nth-child(6) { transition-delay: 0.30s; }
+.reveal:nth-child(7) { transition-delay: 0.36s; }
+
+/* ─── 2. Hero Title — Gradient Accent on <em> ────────────────
+   ui-ux-pro-max: use accent token for brand identity.
+   Gradient shine on italic "the invisible." hero text.
+   ─────────────────────────────────────────────────────────── */
+.hero-title em {
+  font-style: normal;
+  background: linear-gradient(
+    120deg,
+    var(--accent-primary) 0%,
+    color-mix(in srgb, var(--accent-primary) 70%, #fff) 50%,
+    var(--accent-secondary) 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* ─── 3. Specular Gradient Border on Case-Intake Drop Zone ───
+   Glass SKILL.md §5 "Premium cards" — gradient mask border.
+   ─────────────────────────────────────────────────────────── */
+.case-intake {
+  border-style: solid;
+}
+
+.case-intake::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.30) 0%,
+    rgba(255, 255, 255, 0.08) 40%,
+    rgba(255, 255, 255, 0.0) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: destination-out;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.25s ease;
+  z-index: 2;
+}
+
+.case-intake:hover::before,
+.case-intake--drag::before {
+  opacity: 1.5; /* brighten on hover */
+}
+
+/* ─── 4. Neumorphic Topbar Fix ────────────────────────────────
+   Neuromorphic SKILL.md rule: "every element bg = var(--surface)"
+   In neu mode, topbar must use surface not glass backdrop-filter.
+   ─────────────────────────────────────────────────────────── */
+[data-style="neumorphic"] .topbar,
+[data-style="neumorphic"] .glass-nav {
+  background: var(--surface) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  border-bottom: none !important;
+  box-shadow: 0 4px 14px var(--shadow-dark), 0 1px 0 var(--shadow-light) inset !important;
+}
+
+[data-style="neumorphic"] .topbar-mark {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+}
+
+[data-style="neumorphic"] .topbar-sep {
+  background: var(--shadow-dark) !important;
+  opacity: 0.4;
+}
+
+[data-style="neumorphic"] .btn-admin-topbar,
+[data-style="neumorphic"] .btn-analyst-topbar {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  color: var(--text-secondary) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-style="neumorphic"] .btn-admin-topbar:hover,
+[data-style="neumorphic"] .btn-analyst-topbar:hover {
+  box-shadow: var(--shadow-md-raised) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(-1px);
+}
+
+[data-style="neumorphic"] .btn-admin-topbar:active,
+[data-style="neumorphic"] .btn-analyst-topbar:active {
+  box-shadow: var(--shadow-soft-inset) !important;
+  transform: scale(0.97);
+  color: var(--accent-primary) !important;
+}
+
+/* ─── 5. Focus Ring System ────────────────────────────────────
+   ui-ux-pro-max priority 1: "Focus States — Severity: HIGH"
+   Every interactive element needs a visible focus ring.
+   ─────────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Topbar buttons — tighter focus ring */
+.topbar button:focus-visible,
+.btn-new-case:focus-visible,
+.btn-signin:focus-visible,
+.btn-history-topbar:focus-visible,
+.btn-palette-topbar:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* Demo cards — styled focus ring */
+.demo-card:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 2px var(--accent-primary);
+}
+
+/* Filter chips focus */
+.filter-chip:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
+}
+
+/* ─── 6. Cursor enforcement ───────────────────────────────────
+   ui-ux-pro-max pre-delivery checklist: "cursor-pointer on all clickable"
+   ─────────────────────────────────────────────────────────── */
+.demo-card,
+.filter-chip,
+.palette-dropdown-item,
+.user-dropdown-item,
+.hero-card,
+.hash-chip,
+.toggle-btn,
+.scroll-to-sandbox-cta {
+  cursor: pointer;
+}
+
+/* ─── 7. @supports Fallback for backdrop-filter ──────────────
+   Glass SKILL.md §8 Accessibility.
+   Firefox and older browsers without backdrop-filter support.
+   ─────────────────────────────────────────────────────────── */
+@supports not (backdrop-filter: blur(1px)) {
+  .panel,
+  .glass-card,
+  .glass-nav,
+  .topbar,
+  .glass-menu,
+  .btn-glass,
+  .btn-history-topbar,
+  .btn-palette-topbar,
+  .btn-signin,
+  .btn-history-topbar,
+  .case-intake,
+  .kpi-strip,
+  .hero-terminal {
+    background: rgba(20, 14, 10, 0.92) !important;
+  }
+
+  [data-theme="ocean-frost"] .panel,
+  [data-theme="ocean-frost"] .glass-card,
+  [data-theme="ocean-frost"] .topbar {
+    background: rgba(3, 8, 22, 0.94) !important;
+  }
+
+  [data-theme="cyber-sentinel"] .panel,
+  [data-theme="cyber-sentinel"] .glass-card,
+  [data-theme="cyber-sentinel"] .topbar {
+    background: rgba(3, 7, 18, 0.95) !important;
+  }
+}
+
+/* ─── 8. Reduced-Motion Extension ────────────────────────────
+   Glass SKILL.md §6 + ui-ux-pro-max priority 7:
+   Extends the existing blob-only rule to all animated elements.
+   ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  /* Reveal — show immediately without animation */
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+  }
+
+  /* Card hover lifts — disable */
+  .panel:hover,
+  .glass-card:hover,
+  .hero-card:hover,
+  .demo-card:hover:not(:disabled),
+  .case-intake:hover,
+  .case-intake--drag {
+    transform: none !important;
+  }
+
+  /* Shimmer sweeps — disable */
+  .panel::after,
+  .glass-card::after,
+  .hero-card::after,
+  .demo-card::after {
+    display: none;
+  }
+
+  /* Button spring — disable */
+  .btn,
+  .btn-new-case,
+  .btn-signin,
+  .btn-history-topbar {
+    transition-duration: 0.01ms !important;
+  }
+
+  /* All keyframe animations off */
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── 9. prefers-reduced-transparency ────────────────────────
+   Glass SKILL.md §8: respect OS "reduce transparency" setting.
+   ─────────────────────────────────────────────────────────── */
+@media (prefers-reduced-transparency: reduce) {
+  .panel,
+  .glass-card,
+  .glass-nav,
+  .topbar,
+  .glass-menu,
+  .btn-glass,
+  .case-intake,
+  .kpi-strip {
+    background: rgba(20, 14, 10, 0.94) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+}
+
+/* ─── 10. Skeleton Loader ─────────────────────────────────────
+   Glass SKILL.md §6 "Skeleton Loader" — shimmer sweep pattern.
+   Use class .skeleton on placeholder divs.
+   ─────────────────────────────────────────────────────────── */
+.skeleton {
+  background: var(--glass-bg);
+  border-radius: var(--radius-md);
+  position: relative;
+  overflow: hidden;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0.0) 20%,
+    rgba(255, 255, 255, 0.07) 50%,
+    rgba(255, 255, 255, 0.0) 80%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-sweep 1.8s linear infinite;
+}
+
+@keyframes skeleton-sweep {
+  from { background-position: 200% 0; }
+  to   { background-position: -200% 0; }
+}
+
+[data-style="neumorphic"] .skeleton {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+}
+
+/* ─── 11. Loading Overlay — Blur-in Entrance ─────────────────
+   Polished entry: fade + slight scale from center.
+   ─────────────────────────────────────────────────────────── */
+.loading-overlay {
+  animation: overlay-enter 0.28s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+@keyframes overlay-enter {
+  from {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+  }
+  to {
+    opacity: 1;
+    backdrop-filter: blur(10px);
+  }
+}
+
+/* ─── 12. Demo Grid — Gap-based polish ───────────────────────
+   ui-ux-pro-max: hover states must be smooth 150-300ms.
+   Tighten the grid for denser dashboard density setting (8/10).
+   ─────────────────────────────────────────────────────────── */
+.demo-card:hover:not(:disabled) {
+  transition:
+    background 0.22s ease,
+    box-shadow 0.22s ease,
+    transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) !important;
+}
+
+/* ─── 13. Topbar Brand Mark — Apple Specular Refinement ──────
+   Glass SKILL.md: logo mark gets the specular inset treatment.
+   ─────────────────────────────────────────────────────────── */
+.topbar-mark {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s ease;
+}
+
+.topbar-brand:hover .topbar-mark {
+  transform: scale(1.08);
+  box-shadow: 0 1px 0 0 rgba(255, 255, 255, 0.35) inset, 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── 14. Topbar Sign In — Accent Glow on Hover ─────────────
+   ui-ux-pro-max: primary CTA should have clear visual weight.
+   ─────────────────────────────────────────────────────────── */
+.btn-signin:hover {
+  box-shadow: 0 0 0 1px var(--accent-primary), 0 4px 16px var(--accent-glow) !important;
+  border-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ─── 15. Hero Terminal — Depth Grid Enhancement ─────────────
+   Dot grid refined to accent color for atmosphere.
+   ─────────────────────────────────────────────────────────── */
+.hero-terminal {
+  background-image:
+    radial-gradient(circle at 20% 30%, var(--accent-glow) 0%, transparent 55%),
+    radial-gradient(circle at 80% 80%, rgba(255,255,255,0.02) 0%, transparent 50%);
+}
+
+/* ─── 16. KPI Strip — Bottom accent line ────────────────────
+   Adds a subtle accent-colored bottom line for visual grounding.
+   ─────────────────────────────────────────────────────────── */
+.kpi-strip {
+  border-bottom: 2px solid var(--accent-primary);
+  background: var(--glass-bg);
+}
+
+/* In neumorphic mode, KPI strip uses raised shadow not border trick */
+[data-style="neumorphic"] .kpi-strip {
+  background-image: none !important;
+  border-bottom: none !important;
+}
+
+
+
+/* =============================================================
+   NEUMORPHIC DESIGN — COMPREHENSIVE IMPROVEMENT LAYER
+   Skill: neuromorphic/SKILL.md  +  ui-ux-pro-max skill
+   
+   Cardinal rules enforced throughout:
+   1. Element bg == var(--surface) — ALWAYS
+   2. NO borders — shadows alone define all edges
+   3. Raised (idle) - Inset (pressed/active) tactile cycle
+   4. Accent ONLY on active state, one CTA, progress fill
+   5. Smooth press: 0.12s cubic-bezier(0.4,0,0.2,1)
+   ============================================================= */
+
+/* ── A. Workspace Tabs ─────────────────────────────────────────
+   Glass version uses rgba background + border + glow.
+   Neu version: raised surface → inset on active.
+   ─────────────────────────────────────────────────────────── */
+[data-style="neumorphic"] .workspace-tabs-bar {
+  border-bottom: none !important;
+  padding-bottom: 14px;
+  gap: 8px;
+}
+[data-style="neumorphic"] .workspace-tab {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-pill) !important;
+  transition: box-shadow var(--t-press), transform var(--t-press), color var(--t-smooth);
+}
+[data-style="neumorphic"] .workspace-tab:hover {
+  box-shadow: var(--shadow-md-raised) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(-1px);
+}
+[data-style="neumorphic"] .workspace-tab--active {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--accent-primary) !important;
+  transform: scale(0.98);
+}
+[data-style="neumorphic"] .workspace-tab-badge {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-flat) !important;
+  color: var(--text-secondary) !important;
+}
+[data-style="neumorphic"] .workspace-tab--active .workspace-tab-badge {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--accent-primary) !important;
+}
+[data-style="neumorphic"] .workspace-tab-badge--alert {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-flat) !important;
+  color: var(--risk-critical) !important;
+  border: none !important;
+}
+
+/* ── B. Filter Chips & Toggle Chips ───────────────────────────*/
+[data-style="neumorphic"] .filter-chip,
+[data-style="neumorphic"] .toggle-chip {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-pill) !important;
+  transition: box-shadow var(--t-press), transform var(--t-press), color var(--t-smooth);
+}
+[data-style="neumorphic"] .filter-chip:hover,
+[data-style="neumorphic"] .toggle-chip:hover {
+  box-shadow: var(--shadow-md-raised) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(-1px);
+}
+[data-style="neumorphic"] .filter-chip--active,
+[data-style="neumorphic"] .toggle-chip--active-outlier,
+[data-style="neumorphic"] .toggle-chip--active-pqc,
+[data-style="neumorphic"] .toggle-chip--active-warning {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--accent-primary) !important;
+  border: none !important;
+  transform: scale(0.97);
+}
+[data-style="neumorphic"] .toggle-chip-count {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-flat) !important;
+}
+
+/* ── C. Session Controls Card & Search ────────────────────────*/
+[data-style="neumorphic"] .session-controls-card {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  border-radius: var(--radius-lg) !important;
+}
+[data-style="neumorphic"] .findings-toolbar {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  border-radius: var(--radius-lg) !important;
+}
+[data-style="neumorphic"] .findings-search-box {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border-radius: var(--radius-md) !important;
+}
+[data-style="neumorphic"] .findings-search-box:focus-within {
+  box-shadow: var(--shadow-soft-inset), 0 0 0 3px var(--accent-glow) !important;
+}
+[data-style="neumorphic"] .findings-category-select {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── D. Sub-tabs ──────────────────────────────────────────────*/
+[data-style="neumorphic"] .subtab-bar {
+  border-bottom: none !important;
+  gap: 6px;
+  padding-bottom: 10px;
+}
+[data-style="neumorphic"] .subtab-btn {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  color: var(--text-secondary) !important;
+  border-radius: var(--radius-md) !important;
+  transition: box-shadow var(--t-press), transform var(--t-press), color var(--t-smooth);
+}
+[data-style="neumorphic"] .subtab-btn:hover {
+  box-shadow: var(--shadow-md-raised) !important;
+  color: var(--text-primary) !important;
+  transform: translateY(-1px);
+}
+[data-style="neumorphic"] .subtab-btn--active {
+  background: var(--surface) !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border: none !important;
+  color: var(--accent-primary) !important;
+  font-weight: 700 !important;
+  transform: scale(0.97);
+}
+
+/* ── E. Hero Feature Cards ────────────────────────────────────*/
+[data-style="neumorphic"] .hero-card,
+[data-style="neumorphic"] .panel.hero-card {
+  background: var(--surface) !important;
+  border: none !important;
+  border-top: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  border-radius: var(--radius-lg) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: box-shadow var(--t-smooth), transform var(--t-smooth);
+}
+[data-style="neumorphic"] .hero-card:hover { box-shadow: var(--shadow-md-raised) !important; transform: translateY(-3px); }
+[data-style="neumorphic"] .hero-card--blue   { border-top: none !important; }
+[data-style="neumorphic"] .hero-card--violet { border-top: none !important; }
+[data-style="neumorphic"] .hero-card--green  { border-top: none !important; }
+[data-style="neumorphic"] .hero-card--blue   .hero-card-index { color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .hero-card--violet .hero-card-index { color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .hero-card--green  .hero-card-index { color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .hero-card-title { color: var(--text-primary) !important; }
+[data-style="neumorphic"] .hero-card-item  { color: var(--text-secondary) !important; }
+[data-style="neumorphic"] .hero-card-item::before { color: var(--accent-primary) !important; }
+
+/* ── F. Demo Grid & Demo Cards ────────────────────────────────*/
+[data-style="neumorphic"] .demo-grid {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border-radius: var(--radius-lg) !important;
+  gap: 12px !important;
+  padding: 12px !important;
+}
+[data-style="neumorphic"] .demo-card {
+  background: var(--surface) !important;
+  border: none !important;
+  border-left: none !important;
+  border-right: none !important;
+  border-bottom: none !important;
+  box-shadow: var(--shadow-soft-raised) !important;
+  border-radius: var(--radius-md) !important;
+  transition: box-shadow var(--t-press), transform var(--t-press);
+}
+[data-style="neumorphic"] .demo-card:hover:not(:disabled) { box-shadow: var(--shadow-md-raised) !important; transform: translateY(-2px) !important; background: var(--surface) !important; }
+[data-style="neumorphic"] .demo-card:active:not(:disabled) { box-shadow: var(--shadow-soft-inset) !important; transform: scale(0.97) !important; }
+[data-style="neumorphic"] .demo-card::after { display: none !important; }
+[data-style="neumorphic"] .demo-card strong { color: var(--text-primary) !important; }
+[data-style="neumorphic"] .demo-card small  { color: var(--text-secondary) !important; }
+[data-style="neumorphic"] .demo-number { color: var(--text-muted) !important; }
+[data-style="neumorphic"] .demo-run    { color: var(--text-muted) !important; }
+[data-style="neumorphic"] .demo-card:hover:not(:disabled) .demo-run { color: var(--accent-primary) !important; }
+
+/* ── G. Demo Library Container ────────────────────────────────*/
+[data-style="neumorphic"] .demo-library { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-xl) !important; }
+[data-style="neumorphic"] .demo-library::before { display: none !important; }
+
+/* ── H. KPI Strip & Items ─────────────────────────────────────*/
+[data-style="neumorphic"] .kpi-strip {
+  background: var(--surface) !important;
+  border: none !important;
+  box-shadow: var(--shadow-soft-inset) !important;
+  border-radius: var(--radius-lg) !important;
+  background-image: none !important;
+  border-bottom: none !important;
+}
+[data-style="neumorphic"] .kpi-item { border-right: none !important; }
+[data-style="neumorphic"] .kpi-sep  { background: var(--shadow-dark) !important; opacity: 0.3; }
+[data-style="neumorphic"] .kpi-val  { color: var(--text-primary) !important; }
+[data-style="neumorphic"] .kpi-label { color: var(--text-muted) !important; }
+
+/* ── I. Risk Cards & Progress Bars ───────────────────────────*/
+[data-style="neumorphic"] .risk-card { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-lg) !important; }
+[data-style="neumorphic"] .risk-card-bar-track { background: var(--surface) !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-pill) !important; }
+[data-style="neumorphic"] .risk-card-bar-fill--CRITICAL,
+[data-style="neumorphic"] .risk-card-bar-fill--HIGH,
+[data-style="neumorphic"] .risk-card-bar-fill--MEDIUM,
+[data-style="neumorphic"] .risk-card-bar-fill--LOW {
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)) !important;
+  box-shadow: none !important;
+}
+[data-style="neumorphic"] .risk-matrix-stat { border-right: none !important; }
+[data-style="neumorphic"] .risk-matrix-footer { border-top: 1px solid var(--shadow-dark) !important; }
+
+/* ── J. Command Deck Cards ────────────────────────────────────*/
+[data-style="neumorphic"] .command-deck-card { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-lg) !important; transition: box-shadow var(--t-smooth), transform var(--t-smooth); }
+[data-style="neumorphic"] .command-deck-card:hover { box-shadow: var(--shadow-md-raised) !important; transform: translateY(-2px); }
+[data-style="neumorphic"] .deck-stat { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; }
+
+/* ── K. Findings Cards — severity via inset channel ──────────*/
+[data-style="neumorphic"] .finding-card { background: var(--surface) !important; border: none !important; border-left: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-lg) !important; }
+[data-style="neumorphic"] .finding-card--CRITICAL { box-shadow: var(--shadow-soft-raised), inset 3px 0 0 var(--risk-critical) !important; }
+[data-style="neumorphic"] .finding-card--HIGH     { box-shadow: var(--shadow-soft-raised), inset 3px 0 0 var(--risk-high) !important; }
+[data-style="neumorphic"] .finding-card--MEDIUM   { box-shadow: var(--shadow-soft-raised), inset 3px 0 0 var(--risk-medium) !important; }
+[data-style="neumorphic"] .finding-card--LOW      { box-shadow: var(--shadow-soft-raised), inset 3px 0 0 var(--risk-low) !important; }
+[data-style="neumorphic"] .finding-card--INFO     { box-shadow: var(--shadow-soft-raised), inset 3px 0 0 var(--accent-blue) !important; }
+[data-style="neumorphic"] .finding-remediation-box { background: var(--surface) !important; border-left: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; }
+[data-style="neumorphic"] .finding-expand-btn { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-flat) !important; border-radius: var(--radius-sm) !important; color: var(--text-secondary) !important; transition: box-shadow var(--t-press), color var(--t-smooth); }
+[data-style="neumorphic"] .finding-expand-btn:hover { box-shadow: var(--shadow-md-raised) !important; color: var(--accent-primary) !important; }
+
+/* ── L. Session Table ─────────────────────────────────────────*/
+[data-style="neumorphic"] table.session-table thead th { background: var(--surface-deep) !important; border-bottom: none !important; box-shadow: 0 1px 0 var(--shadow-dark) !important; }
+[data-style="neumorphic"] table.session-table tbody tr { border-bottom: none !important; }
+[data-style="neumorphic"] table.session-table tbody tr:hover { background: var(--surface-raised) !important; }
+[data-style="neumorphic"] table.session-table tbody tr.expanded { background: var(--surface-deep) !important; }
+[data-style="neumorphic"] .session-detail-inner { background: var(--surface-deep) !important; border-top: none !important; }
+[data-style="neumorphic"] .detail-card { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-md) !important; }
+[data-style="neumorphic"] .detail-card-title { border-bottom: 1px solid var(--shadow-dark) !important; color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .detail-card-title-dot { background: var(--accent-primary) !important; box-shadow: none !important; }
+
+/* ── M. Session Expanded Dock ─────────────────────────────────*/
+[data-style="neumorphic"] .session-expanded-dock { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-bold-raised) !important; border-radius: var(--radius-lg) !important; }
+[data-style="neumorphic"] .session-expanded-dock-header { background: var(--surface-deep) !important; border-bottom: none !important; box-shadow: 0 1px 0 var(--shadow-dark) !important; }
+
+/* ── N. Violation Items ───────────────────────────────────────*/
+[data-style="neumorphic"] .violation-item { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-flat) !important; border-radius: var(--radius-sm) !important; }
+[data-style="neumorphic"] .violation-item--CRITICAL .violation-accent { background: var(--risk-critical) !important; }
+[data-style="neumorphic"] .violation-item--HIGH     .violation-accent { background: var(--risk-high) !important; }
+[data-style="neumorphic"] .violation-item--MEDIUM   .violation-accent { background: var(--risk-medium) !important; }
+[data-style="neumorphic"] .violation-item--LOW      .violation-accent { background: var(--risk-low) !important; }
+
+/* ── O. Loading Overlay ───────────────────────────────────────*/
+[data-style="neumorphic"] .loading-overlay { background: var(--surface) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+[data-style="neumorphic"] .loading-radar { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-md-raised) !important; }
+[data-style="neumorphic"] .loading-radar::before,
+[data-style="neumorphic"] .loading-radar::after { border: none !important; box-shadow: var(--shadow-soft-inset) !important; background: var(--surface) !important; }
+[data-style="neumorphic"] .loading-progress { background: var(--surface) !important; box-shadow: var(--shadow-soft-inset) !important; }
+[data-style="neumorphic"] .loading-progress-bar { background: linear-gradient(90deg, var(--accent-primary), var(--accent-secondary)) !important; box-shadow: none !important; }
+
+/* ── P. Hero Title — Gradient Text off in Neu Mode ───────────*/
+[data-style="neumorphic"] .hero-title em {
+  background: none !important;
+  -webkit-background-clip: unset !important;
+  background-clip: unset !important;
+  -webkit-text-fill-color: var(--accent-primary) !important;
+  color: var(--accent-primary) !important;
+}
+
+/* ── Q. Hero Status Row & Eyebrow ────────────────────────────*/
+[data-style="neumorphic"] .hero-status-row { color: var(--text-muted) !important; }
+[data-style="neumorphic"] .hero-status-row b { color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .hero-status-row i { background: var(--shadow-dark) !important; opacity: 0.4; }
+
+/* ── R. Toast ────────────────────────────────────────────────*/
+[data-style="neumorphic"] .toast { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-bold-raised) !important; backdrop-filter: none !important; -webkit-backdrop-filter: none !important; }
+
+/* ── S. Header Bar Buttons ────────────────────────────────────*/
+[data-style="neumorphic"] .header-seal { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; }
+[data-style="neumorphic"] .btn-action-primary,
+[data-style="neumorphic"] .btn-action-secondary,
+[data-style="neumorphic"] .btn-action-ghost {
+  background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; color: var(--text-secondary) !important; backdrop-filter: none !important;
+  transition: box-shadow var(--t-press), transform var(--t-press), color var(--t-smooth);
+}
+[data-style="neumorphic"] .btn-action-primary:hover,
+[data-style="neumorphic"] .btn-action-secondary:hover,
+[data-style="neumorphic"] .btn-action-ghost:hover { box-shadow: var(--shadow-md-raised) !important; color: var(--text-primary) !important; transform: translateY(-1px); }
+[data-style="neumorphic"] .btn-action-primary:active,
+[data-style="neumorphic"] .btn-action-secondary:active,
+[data-style="neumorphic"] .btn-action-ghost:active { box-shadow: var(--shadow-soft-inset) !important; transform: scale(0.97); color: var(--accent-primary) !important; }
+
+/* ── T. Evidence Banner ───────────────────────────────────────*/
+[data-style="neumorphic"] .hash-chip { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-flat) !important; border-radius: var(--radius-sm) !important; color: var(--text-secondary) !important; }
+[data-style="neumorphic"] .hash-chip:hover { box-shadow: var(--shadow-soft-inset) !important; color: var(--accent-primary) !important; }
+
+/* ── U. Score Bars ────────────────────────────────────────────*/
+[data-style="neumorphic"] .score-bar-track { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; }
+[data-style="neumorphic"] .score-bar-fill  { background: linear-gradient(0deg, var(--accent-primary), var(--accent-secondary)) !important; box-shadow: none !important; }
+
+/* ── V. Export Cards ──────────────────────────────────────────*/
+[data-style="neumorphic"] .export-features,
+[data-style="neumorphic"] .json-preview { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; }
+[data-style="neumorphic"] .export-feature-item::before { color: var(--accent-primary) !important; }
+
+/* ── W. Focus Rings — Neu-adapted ────────────────────────────*/
+[data-style="neumorphic"] :focus-visible { outline: none !important; box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-soft-raised) !important; border-radius: var(--radius-sm); }
+[data-style="neumorphic"] .demo-card:focus-visible { box-shadow: 0 0 0 3px var(--accent-glow), var(--shadow-md-raised) !important; }
+
+/* ── X. Scroll-to-Sandbox CTA ────────────────────────────────*/
+[data-style="neumorphic"] .scroll-to-sandbox-cta { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-flat) !important; border-radius: var(--radius-pill) !important; color: var(--text-secondary) !important; transition: box-shadow var(--t-press), color var(--t-smooth); }
+[data-style="neumorphic"] .scroll-to-sandbox-cta:hover { box-shadow: var(--shadow-md-raised) !important; color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .scroll-to-sandbox-cta:active { box-shadow: var(--shadow-soft-inset) !important; }
+
+/* ── Y. History Scope Toggle ──────────────────────────────────*/
+[data-style="neumorphic"] .history-scope-toggle { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; }
+[data-style="neumorphic"] .history-scope-btn { color: var(--text-muted) !important; border-radius: var(--radius-sm) !important; transition: box-shadow var(--t-press), color var(--t-smooth); }
+[data-style="neumorphic"] .history-scope-btn--active { background: var(--surface) !important; box-shadow: var(--shadow-soft-raised) !important; color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .history-triage-select { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; backdrop-filter: none !important; }
+
+/* ── Z. Telemetry Rows ────────────────────────────────────────*/
+[data-style="neumorphic"] .telemetry-row { border-bottom: 1px solid var(--shadow-dark) !important; opacity: 0.85; }
+[data-style="neumorphic"] .telemetry-row:last-child { border-bottom: none !important; opacity: 1; }
+
+/* ── Triage Verdict Cards ─────────────────────────────────────*/
+[data-style="neumorphic"] .triage-verdict-card { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-raised) !important; border-radius: var(--radius-sm) !important; transition: box-shadow var(--t-press), transform var(--t-press); }
+[data-style="neumorphic"] .triage-verdict-card:hover { box-shadow: var(--shadow-md-raised) !important; transform: translateY(-1px); }
+[data-style="neumorphic"] .triage-verdict-card--selected,
+[data-style="neumorphic"] .triage-verdict-card--critical.triage-verdict-card--selected { box-shadow: var(--shadow-soft-inset), 0 0 0 2px var(--accent-primary) !important; transform: scale(0.98); }
+[data-style="neumorphic"] .triage-notes-textarea,
+[data-style="neumorphic"] .triage-tags-box { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; border-radius: var(--radius-sm) !important; color: var(--text-primary) !important; }
+[data-style="neumorphic"] .triage-tag-pill { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-flat) !important; color: var(--accent-primary) !important; }
+[data-style="neumorphic"] .btn-triage-signoff { background: var(--accent-primary) !important; border: none !important; box-shadow: var(--shadow-soft-flat), 0 4px 14px var(--accent-glow) !important; color: #fff !important; }
+[data-style="neumorphic"] .btn-triage-signoff:hover { box-shadow: var(--shadow-md-raised), 0 6px 18px var(--accent-glow) !important; transform: translateY(-1px); }
+
+/* ── Modal Inputs ─────────────────────────────────────────────*/
+[data-style="neumorphic"] .modal-input-group input,
+[data-style="neumorphic"] .auth-field { background: var(--surface) !important; border: none !important; box-shadow: var(--shadow-soft-inset) !important; }
+[data-style="neumorphic"] .modal-input-group input:focus,
+[data-style="neumorphic"] .auth-field:focus { box-shadow: var(--shadow-soft-inset), 0 0 0 3px var(--accent-glow) !important; outline: none !important; }
+
+
+
+/* ── Topbar Clusters & Responsive Enhancements ── */
+@media (max-width: 1120px) {
+  .btn-history-topbar span,
+  .btn-admin-topbar span,
+  .btn-analyst-topbar span {
+    display: none;
+  }
+  .btn-history-topbar,
+  .btn-admin-topbar,
+  .btn-analyst-topbar {
+    padding: 0 10px;
+    gap: 0;
+  }
+  .palette-label {
+    max-width: 90px;
+  }
+}
+
+@media (max-width: 900px) {
+  .api-state-label {
+    display: none;
+  }
+  .palette-label {
+    display: none;
+  }
+  .topbar-actions-sep {
+    margin: 0 1px;
+  }
+}
+
+
+/* ── Liquid Glass Crystalline Specular Refraction Rim ── */
+.panel::before,
+.glass-card::before,
+.command-deck-card::before,
+.kpi-strip::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.25) 15%, rgba(255, 255, 255, 0.65) 50%, rgba(255, 255, 255, 0.25) 85%, transparent 100%);
+  pointer-events: none;
+  z-index: 2;
+}
+
+[data-style="neumorphic"] .panel::before,
+[data-style="neumorphic"] .glass-card::before,
+[data-style="neumorphic"] .command-deck-card::before,
+[data-style="neumorphic"] .kpi-strip::before {
+  display: none !important;
+}

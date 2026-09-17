@@ -18,17 +18,27 @@ export default function ComponentScoreChart({ scores }) {
   const cs = scores || {}
   const values = KEYS.map(k => cs[k] ?? 0)
 
+  const isLight = typeof document !== 'undefined' && (
+    document.documentElement.getAttribute('data-theme')?.startsWith('stone') ||
+    document.documentElement.getAttribute('data-theme')?.startsWith('slate') ||
+    document.documentElement.getAttribute('data-theme')?.startsWith('warm')
+  )
+
+  const gridColor  = isLight ? 'rgba(163, 177, 198, 0.45)' : 'rgba(22, 43, 54, 0.9)'
+  const tickColor  = isLight ? 'rgba(100, 116, 139, 0.85)' : 'rgba(76, 106, 112, 0.8)'
+  const labelColor = isLight ? 'rgba(51, 65, 85, 0.95)'    : 'rgba(133, 168, 170, 0.9)'
+
   const data = {
     labels: LABELS,
     datasets: [
       {
         label: 'Score',
         data: values,
-        backgroundColor: 'rgba(61, 216, 232, 0.08)',
-        borderColor:     'rgba(61, 216, 232, 0.7)',
-        borderWidth: 1.5,
-        pointBackgroundColor: 'rgba(61, 216, 232, 0.9)',
-        pointBorderColor:     'rgba(9, 17, 24, 0.9)',
+        backgroundColor: isLight ? 'rgba(155, 114, 207, 0.16)' : 'rgba(61, 216, 232, 0.08)',
+        borderColor:     isLight ? 'rgba(155, 114, 207, 0.85)' : 'rgba(61, 216, 232, 0.7)',
+        borderWidth: 1.8,
+        pointBackgroundColor: isLight ? 'rgba(155, 114, 207, 1)' : 'rgba(61, 216, 232, 0.9)',
+        pointBorderColor:     isLight ? '#e0e5ec' : 'rgba(9, 17, 24, 0.9)',
         pointBorderWidth: 1.5,
         pointRadius: 4,
         pointHoverRadius: 6,
@@ -45,14 +55,14 @@ export default function ComponentScoreChart({ scores }) {
         max: 100,
         ticks: {
           stepSize: 25,
-          color: 'rgba(76, 106, 112, 0.8)',
+          color: tickColor,
           font: { family: "'JetBrains Mono', monospace", size: 8 },
           backdropColor: 'transparent',
         },
-        grid:        { color: 'rgba(22, 43, 54, 0.9)' },
-        angleLines:  { color: 'rgba(22, 43, 54, 0.9)' },
+        grid:        { color: gridColor },
+        angleLines:  { color: gridColor },
         pointLabels: {
-          color: 'rgba(133, 168, 170, 0.9)',
+          color: labelColor,
           font: { family: "'Inter', sans-serif", size: 9.5, weight: '600' },
         },
       },

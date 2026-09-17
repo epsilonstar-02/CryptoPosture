@@ -37,10 +37,16 @@ export default function PostureGauge({ score, tier, bare = false }) {
     const draw = (val) => {
       ctx.clearRect(0, 0, size, size)
 
+      const isLight = document.documentElement.getAttribute('data-theme')?.startsWith('stone') ||
+                      document.documentElement.getAttribute('data-theme')?.startsWith('slate') ||
+                      document.documentElement.getAttribute('data-theme')?.startsWith('warm')
+      const trackColor = isLight ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.07)'
+      const subtextColor = isLight ? 'rgba(51, 65, 85, 0.60)' : 'rgba(255, 255, 255, 0.35)'
+
       // Track
       ctx.beginPath()
       ctx.arc(cx, cy, r, startAngle, startAngle + fullArc)
-      ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+      ctx.strokeStyle = trackColor
       ctx.lineWidth = lw
       ctx.lineCap = 'round'
       ctx.stroke()
@@ -53,7 +59,7 @@ export default function PostureGauge({ score, tier, bare = false }) {
       ctx.lineWidth = lw
       ctx.lineCap = 'round'
       ctx.shadowColor = color
-      ctx.shadowBlur = 20
+      ctx.shadowBlur = 16
       ctx.stroke()
       ctx.shadowBlur = 0
 
@@ -65,8 +71,8 @@ export default function PostureGauge({ score, tier, bare = false }) {
       ctx.fillText(Math.round(val), cx, cy - size * 0.04)
 
       // /100
-      ctx.fillStyle = 'rgba(255,255,255,0.22)'
-      ctx.font = `${size * 0.075}px 'Inter', sans-serif`
+      ctx.fillStyle = subtextColor
+      ctx.font = `600 ${size * 0.075}px 'Inter', sans-serif`
       ctx.fillText('/100', cx, cy + size * 0.13)
     }
 

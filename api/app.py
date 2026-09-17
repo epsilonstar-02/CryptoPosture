@@ -20,6 +20,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, List, Optional, Tuple
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
@@ -466,6 +470,22 @@ async def generate_narrative_endpoint(
         )
 
     narrative_result = generate_narrative_from_dict(body)
+
+    # If this corresponds to a stored analysis record and succeeded, update DB
+    analysis_id = body.get("analysis_id") or body.get("id")
+    if analysis_id and not narrative_result.skipped_reason:
+        try:
+            from core.db import SessionLocal
+            with SessionLocal() as db_session:
+                rec = db_session.query(AnalysisRecord).filter(AnalysisRecord.id == str(analysis_id)).first()
+                if rec and rec.summary_json:
+                    stored = json.loads(rec.summary_json)
+                    stored["ai_narrative"] = narrative_result.to_dict()
+                    rec.summary_json = json.dumps(stored)
+                    db_session.commit()
+        except Exception as db_exc:
+            logger.warning("Could not persist regenerated narrative to analysis %s: %s", analysis_id, db_exc)
+
     return JSONResponse(content={"ai_narrative": narrative_result.to_dict()})
 
 

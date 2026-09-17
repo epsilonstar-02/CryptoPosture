@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 
 const SAMPLES = [
   // Multi-Session Enterprise & Adversarial Simulations
@@ -103,6 +103,58 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
     else                     setEngineState('STANDBY')
   }, [loading, lastAnalyzedAt])
 
+  /* ── Scroll reveal: IntersectionObserver (ui-ux-pro-max §7, power1.out 300-400ms) ── */
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return  // skip — CSS fallback already shows elements
+
+    const observer = new IntersectionObserver(
+      (entries) => entries.forEach((e) => {
+        if (e.isIntersecting) {
+          e.target.classList.add('is-visible')
+          observer.unobserve(e.target)
+        }
+      }),
+      { threshold: 0.10 }
+    )
+    document.querySelectorAll('.reveal').forEach((el) => observer.observe(el))
+    return () => observer.disconnect()
+  }, [])
+
+  /* ── 3D Tilt on feature cards (Glass SKILL.md §6 — max 3 cards per page) ── */
+  const tiltCleanupRef = useRef([])
+  useEffect(() => {
+    const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (prefersReduced) return
+
+    const cards = document.querySelectorAll('.hero-card')
+    const handlers = []
+
+    cards.forEach((card) => {
+      const onMove = (e) => {
+        const r = card.getBoundingClientRect()
+        const x = (e.clientX - r.left) / r.width - 0.5
+        const y = (e.clientY - r.top) / r.height - 0.5
+        card.style.transform = `perspective(900px) rotateX(${y * -7}deg) rotateY(${x * 7}deg) translateY(-4px)`
+        card.style.transition = 'transform 0.08s ease'
+      }
+      const onLeave = () => {
+        card.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)'
+        card.style.transform = 'perspective(900px) rotateX(0) rotateY(0)'
+        setTimeout(() => { card.style.transition = '' }, 500)
+      }
+      card.addEventListener('mousemove', onMove)
+      card.addEventListener('mouseleave', onLeave)
+      handlers.push({ card, onMove, onLeave })
+    })
+
+    tiltCleanupRef.current = handlers
+    return () => handlers.forEach(({ card, onMove, onLeave }) => {
+      card.removeEventListener('mousemove', onMove)
+      card.removeEventListener('mouseleave', onLeave)
+    })
+  }, [])
+
   const receive = file => onFile(file)
 
   const scrollToSandbox = () => {
@@ -112,7 +164,7 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
   return (
     <div className="landing-hero">
 
-      <div className="hero-eyebrow">
+      <div className="hero-eyebrow reveal">
         <span className="kicker-dot" />
         FORENSIC OPERATIONS CONSOLE
         <span style={{ color: 'var(--text-muted)', marginLeft: 6 }}>v1.0.0</span>
@@ -121,23 +173,23 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
       <div className="hero-command-grid">
         {/* ── Left: intro + drop zone ── */}
         <section className="hero-intro">
-          <div className="hero-icon-wrap">
+          <div className="hero-icon-wrap reveal">
             <img className="hero-icon" src="/assets/radar.svg" alt="" />
           </div>
 
-          <h1 className="hero-title">
+          <h1 className="hero-title reveal">
             Ready to inspect<br />
             <em>the invisible.</em>
           </h1>
 
-          <p className="hero-sub">
+          <p className="hero-sub reveal">
             Ingest a capture to reconstruct encrypted mail traffic, expose
             cryptographic drift, and preserve an evidence-grade chain of custody.
           </p>
 
           {/* Big drop zone */}
           <div
-            className={`case-intake${dragging ? ' case-intake--drag' : ''}`}
+            className={`case-intake reveal${dragging ? ' case-intake--drag' : ''}`}
             onClick={() => fileRef.current?.click()}
             onDragOver={e => { e.preventDefault(); setDragging(true) }}
             onDragLeave={() => setDragging(false)}
@@ -157,14 +209,14 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
             <div className="intake-arrow">→ Supports .pcap and .pcapng</div>
           </div>
 
-          <div className="hero-status-row">
+          <div className="hero-status-row reveal">
             <span><b>01</b> Capture intake</span><i />
             <span><b>02</b> Protocol reconstruction</span><i />
             <span><b>03</b> Risk intelligence</span>
           </div>
 
           {/* Scroll CTA */}
-          <button className="scroll-to-sandbox-cta" onClick={scrollToSandbox} type="button">
+          <button className="scroll-to-sandbox-cta reveal" onClick={scrollToSandbox} type="button">
             <span>↓ Explore demo scenarios</span>
           </button>
         </section>
@@ -244,7 +296,7 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
 
       {/* ── WHAT WE ANALYSE — feature cards (promoted) ── */}
       <section className="feature-section">
-        <div className="feature-section-head">
+        <div className="feature-section-head reveal">
           <div className="hero-eyebrow">CAPABILITIES</div>
           <h2 className="feature-section-title">What we analyse</h2>
           <p className="feature-section-sub">
@@ -253,7 +305,7 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
         </div>
         <div className="hero-cards">
           {FEATURE_CARDS.map(card => (
-            <div key={card.index} className={`panel hero-card hero-card--${card.accent}`}>
+            <div key={card.index} className={`panel hero-card hero-card--${card.accent} reveal`}>
               <div className="hero-card-index">{card.index}</div>
               <div className="hero-card-title">{card.title}</div>
               {card.items.map(item => (
@@ -268,13 +320,13 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
       <section className="demo-library" ref={sandboxRef}>
         <div className="demo-library-head">
           <div>
-            <div className="hero-eyebrow demo-eyebrow">
+            <div className="hero-eyebrow demo-eyebrow reveal">
               <span className="sandbox-badge">SANDBOX</span>
-              CURATED EVIDENCE & SIMULATION LIBRARY (18 PCAPS)
+              CURATED EVIDENCE &amp; SIMULATION LIBRARY (18 PCAPS)
             </div>
-            <h2>Explore a known scenario</h2>
+            <h2 className="reveal">Explore a known scenario</h2>
           </div>
-          <p>Multi-session enterprise simulations & ground-truth benchmark corpus across three forensic tiers.<br />
+          <p className="reveal">Multi-session enterprise simulations &amp; ground-truth benchmark corpus across three forensic tiers.<br />
             <span className="demo-click-hint">↙ Click any card to run deep packet inspection</span>
           </p>
         </div>

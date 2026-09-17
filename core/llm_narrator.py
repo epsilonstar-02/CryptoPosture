@@ -1,4 +1,4 @@
-﻿"""
+"""
 core/llm_narrator.py
 LLM-powered Executive Narrative Generator for Cryptographic Posture Reports.
 
@@ -22,9 +22,15 @@ from __future__ import annotations
 import json
 import logging
 import os
+import time
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, Optional
+
+from dotenv import load_dotenv
+
+# Load environment variables from .env file if present
+load_dotenv()
 
 logger = logging.getLogger("cryptoposture.narrator")
 
@@ -33,9 +39,10 @@ logger = logging.getLogger("cryptoposture.narrator")
 # Model configuration
 # ---------------------------------------------------------------------------
 
-# Latest Gemini Flash model -- fast, low-latency, purpose-built for structured
-# data summarization tasks.
-_DEFAULT_MODEL = "gemini-2.5-flash"
+# Configurable Gemini Flash model (defaults to gemini-2.5-flash or GEMINI_MODEL env var)
+_DEFAULT_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash")
+# Fallback models in case primary model hits 503 UNAVAILABLE or high demand spikes
+_FALLBACK_MODELS = ("gemini-2.5-flash", "gemini-3.5-flash")
 
 # System prompt: gives the LLM its analyst persona and output contract.
 _SYSTEM_PROMPT = (
@@ -261,9 +268,32 @@ def _get_api_key() -> Optional[str]:
     return os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or None
 
 
+def _is_transient_error(exc: Exception) -> bool:
+    """Return True if an exception represents a transient/recoverable API error (503, 429, 500, etc.)."""
+    err_str = str(exc).lower()
+    return any(
+        indicator in err_str
+        for indicator in (
+            "503",
+            "unavailable",
+            "high demand",
+            "429",
+            "resource_exhausted",
+            "rate limit",
+            "500",
+            "internal",
+            "504",
+            "gateway",
+            "timeout",
+        )
+    )
+
+
 def _call_gemini(findings_context: dict, model: str = _DEFAULT_MODEL) -> NarrativeResult:
     """
     Call the Gemini API with the structured findings context and return a NarrativeResult.
+    Handles automatic retry with backoff and graceful fallback across alternative models
+    if the primary model encounters a temporary 503 UNAVAILABLE / high demand condition.
     All exceptions are caught and returned as a skipped/error result.
     """
     api_key = _get_api_key()
@@ -283,40 +313,82 @@ def _call_gemini(findings_context: dict, model: str = _DEFAULT_MODEL) -> Narrati
         findings_json = json.dumps(findings_context, indent=2, default=str)
         user_prompt = _USER_PROMPT_TEMPLATE.format(findings_json=findings_json)
 
-        response = client.models.generate_content(
-            model=model,
-            contents=user_prompt,
-            config=types.GenerateContentConfig(
-                system_instruction=_SYSTEM_PROMPT,
-                temperature=0.3,        # Low temperature for consistent, factual prose
-                max_output_tokens=1024,
-            ),
-        )
+        # Build candidate models list (primary requested model first, then unique fallbacks)
+        candidate_models = [model]
+        for fallback in _FALLBACK_MODELS:
+            if fallback not in candidate_models:
+                candidate_models.append(fallback)
 
-        narrative_text = response.text or ""
+        last_exc: Optional[Exception] = None
 
-        # Extract token usage if available
-        token_usage = None
-        if hasattr(response, "usage_metadata") and response.usage_metadata:
-            um = response.usage_metadata
-            token_usage = {
-                "prompt_tokens":     getattr(um, "prompt_token_count", None),
-                "candidates_tokens": getattr(um, "candidates_token_count", None),
-                "total_tokens":      getattr(um, "total_token_count", None),
-            }
+        for m_idx, current_model in enumerate(candidate_models):
+            # Up to 2 attempts per candidate model for transient spikes
+            for attempt in range(1, 3):
+                try:
+                    response = client.models.generate_content(
+                        model=current_model,
+                        contents=user_prompt,
+                        config=types.GenerateContentConfig(
+                            system_instruction=_SYSTEM_PROMPT,
+                            temperature=0.3,        # Low temperature for consistent, factual prose
+                            max_output_tokens=1024,
+                            automatic_function_calling=types.AutomaticFunctionCallingConfig(disable=True),
+                        ),
+                    )
 
-        logger.info(
-            "Narrative generated via %s (%s tokens)",
-            model,
-            token_usage.get("total_tokens") if token_usage else "?",
-        )
+                    narrative_text = response.text or ""
 
-        return NarrativeResult(
-            narrative=narrative_text.strip(),
-            model=model,
-            generated_at=datetime.now(timezone.utc).isoformat(),
-            token_usage=token_usage,
-        )
+                    # Extract token usage if available
+                    token_usage = None
+                    if hasattr(response, "usage_metadata") and response.usage_metadata:
+                        um = response.usage_metadata
+                        token_usage = {
+                            "prompt_tokens":     getattr(um, "prompt_token_count", None),
+                            "candidates_tokens": getattr(um, "candidates_token_count", None),
+                            "total_tokens":      getattr(um, "total_token_count", None),
+                        }
+
+                    logger.info(
+                        "Narrative generated via %s (%s tokens)",
+                        current_model,
+                        token_usage.get("total_tokens") if token_usage else "?",
+                    )
+
+                    return NarrativeResult(
+                        narrative=narrative_text.strip(),
+                        model=current_model,
+                        generated_at=datetime.now(timezone.utc).isoformat(),
+                        token_usage=token_usage,
+                    )
+
+                except Exception as exc:
+                    last_exc = exc
+                    if _is_transient_error(exc):
+                        if attempt < 2:
+                            logger.info(
+                                "Model %s transient error (attempt %d/2): %s. Retrying in 1s...",
+                                current_model,
+                                attempt,
+                                exc,
+                            )
+                            time.sleep(1.0)
+                            continue
+                        else:
+                            if m_idx + 1 < len(candidate_models):
+                                next_model = candidate_models[m_idx + 1]
+                                logger.warning(
+                                    "Model %s unavailable after retries (%s). Falling back to %s...",
+                                    current_model,
+                                    exc,
+                                    next_model,
+                                )
+                            break
+                    else:
+                        # Non-transient error (auth error, schema error, etc.)
+                        raise exc
+
+        if last_exc:
+            raise last_exc
 
     except ImportError:
         logger.warning("google-genai package not installed; skipping narrative generation.")
