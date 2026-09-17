@@ -285,7 +285,9 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
               <p>Role-Based Access Control, Regulatory Audit Trail, and Engine Governance</p>
             </div>
           </div>
-          <button className="admin-modal-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="admin-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
 
         {/* Tab Navigation */}
@@ -330,7 +332,7 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
                   className="btn-admin-primary"
                   onClick={() => setShowAddUser((prev) => !prev)}
                 >
-                  {showAddUser ? '✕ Cancel' : '+ Provision New User'}
+                  {showAddUser ? 'Cancel' : '+ Provision New User'}
                 </button>
               </div>
 
@@ -468,7 +470,8 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
                                 onClick={() => handleDeleteUser(u.id, u.username)}
                                 title={isSelf ? 'Cannot delete your own account' : 'Delete user'}
                               >
-                                🗑️ Delete
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                                Delete
                               </button>
                             </td>
                           </tr>
@@ -519,14 +522,16 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
                     className="btn-admin-ghost"
                     onClick={() => handleExportAudit('csv')}
                   >
-                    📥 Export CSV
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export CSV
                   </button>
                   <button
                     type="button"
                     className="btn-admin-ghost"
                     onClick={() => handleExportAudit('json')}
                   >
-                    📥 Export JSON
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    Export JSON
                   </button>
                 </div>
               </div>
@@ -646,7 +651,8 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
                           disabled={savingPolicy}
                           onClick={handleSavePolicy}
                         >
-                          {savingPolicy ? 'Saving...' : '💾 Save Governance Policy'}
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                          {savingPolicy ? 'Saving...' : 'Save Governance Policy'}
                         </button>
                       </div>
 
@@ -720,7 +726,8 @@ export default function AdminConsoleModal({ isOpen, onClose, currentUser, token,
                       className="btn-admin-danger"
                       onClick={handlePurgeCaptures}
                     >
-                      🧹 Purge Test Captures
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6 }}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+                      Purge Test Captures
                     </button>
                   </div>
                 </>

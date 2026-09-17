@@ -123,8 +123,9 @@ export default function EvidenceProvenancePanel({ evidence = {}, sessions = [], 
 
           <div className="provenance-row">
             <span className="provenance-key">Evidence File</span>
-            <span className="provenance-val" style={{ color: 'var(--text-primary)', fontWeight: 600 }}>
-              📄 {ev.filename || 'Unknown PCAP'}
+            <span className="provenance-val" style={{ color: 'var(--text-primary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              {ev.filename || 'Unknown PCAP'}
             </span>
           </div>
 
@@ -149,7 +150,17 @@ export default function EvidenceProvenancePanel({ evidence = {}, sessions = [], 
           <div className="provenance-row">
             <span className="provenance-key">Integrity Status</span>
             <span className={`integrity-badge${ev.is_tamper_free === false ? ' integrity-badge--tampered' : ''}`}>
-              {ev.is_tamper_free === false ? '⚠ INTEGRITY COMPROMISED' : '✔ CRYPTOGRAPHICALLY INTACT'}
+              {ev.is_tamper_free === false ? (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  INTEGRITY COMPROMISED
+                </>
+              ) : (
+                <>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                  CRYPTOGRAPHICALLY INTACT
+                </>
+              )}
             </span>
           </div>
 
@@ -179,7 +190,8 @@ export default function EvidenceProvenancePanel({ evidence = {}, sessions = [], 
           </div>
 
           <div className="provenance-note">
-            🛡️ Ingested in strict read-only mode conforming to NIST SP 800-86 forensic standards. SHA-256 digest is calculated before stream reassembly to ensure non-repudiation.
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+            Ingested in strict read-only mode conforming to NIST SP 800-86 forensic standards. SHA-256 digest is calculated before stream reassembly to ensure non-repudiation.
           </div>
         </div>
 
@@ -238,7 +250,8 @@ export default function EvidenceProvenancePanel({ evidence = {}, sessions = [], 
 
           {bufferInjectionsCount > 0 && (
             <div className="provenance-alert-box">
-              ⚠ <strong>Buffer Injection Detected:</strong> {bufferInjectionsCount} flow(s) exhibited pre-TLS command pipelining violation (RFC 8314 §5.2).
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <strong>Buffer Injection Detected:</strong> {bufferInjectionsCount} flow(s) exhibited pre-TLS command pipelining violation (RFC 8314 §5.2).
             </div>
           )}
         </div>

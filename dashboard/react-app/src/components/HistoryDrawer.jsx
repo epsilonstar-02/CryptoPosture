@@ -101,14 +101,16 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
         {/* Header */}
         <div className="history-drawer-header">
           <div className="history-drawer-title">
-            <span className="history-drawer-icon">🗄️</span>
+            <span className="history-drawer-icon" style={{ color: 'var(--accent-primary)', display: 'flex' }}>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="20" height="5" x="2" y="3" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8"/><path d="M10 12h4"/></svg>
+            </span>
             <div>
               <h3>Investigation History</h3>
               <p>Persistent forensic record store</p>
             </div>
           </div>
           <button className="history-drawer-close" onClick={onClose} aria-label="Close">
-            ✕
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
           </button>
         </div>
 
@@ -138,7 +140,8 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                 className={`history-scope-btn ${onlyMine ? 'history-scope-btn--active' : ''}`}
                 onClick={() => setOnlyMine(true)}
               >
-                👤 My Investigations Only
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5, verticalAlign: -1 }}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                My Investigations Only
               </button>
             </div>
           )}
@@ -180,7 +183,7 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
             <div className="history-empty">Loading historical captures...</div>
           ) : items.length === 0 ? (
             <div className="history-empty">
-              <span>📂</span>
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', marginBottom: 8 }}><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
               <p>No recorded investigations found.</p>
               <small>Upload a PCAP capture or run any sample scenario to automatically persist it here.</small>
             </div>
@@ -206,10 +209,24 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                 </div>
 
                 <div className="history-item-meta">
-                  <span>📅 {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent'}</span>
-                  <span>⚡ {item.session_count} flows</span>
-                  <span>🛡️ {item.total_violations} violations</span>
-                  {item.username && <span>👤 {item.username}</span>}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+                    {item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent'}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    {item.session_count} flows
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                    {item.total_violations} violations
+                  </span>
+                  {item.username && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      {item.username}
+                    </span>
+                  )}
                 </div>
 
                 {item.tags && item.tags.length > 0 && (
@@ -242,7 +259,7 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                       title="Delete this capture record"
                       onClick={(e) => handleDelete(e, item.id, item.filename)}
                     >
-                      🗑️
+                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
                     </button>
                   )}
                 </div>

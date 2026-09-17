@@ -175,7 +175,9 @@ export default function AnalystTriagePanel({ result, currentUser, token, onToast
             {tags.map((t) => (
               <span key={t} className="triage-tag-pill">
                 #{t}
-                <button type="button" onClick={() => handleRemoveTag(t)}>✕</button>
+                <button type="button" onClick={() => handleRemoveTag(t)} aria-label={`Remove tag ${t}`}>
+                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+                </button>
               </span>
             ))}
           </div>
@@ -205,7 +207,15 @@ export default function AnalystTriagePanel({ result, currentUser, token, onToast
           disabled={saving || !currentUser}
           onClick={handleSaveTriage}
         >
-          {saving ? 'Registering Verdict...' : '✍️ Sign Off Investigation & Save Verdict'}
+          {saving ? 'Registering Verdict...' : (
+            <>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} aria-hidden="true">
+                <path d="M12 20h9" />
+                <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+              </svg>
+              Sign Off Investigation &amp; Save Verdict
+            </>
+          )}
         </button>
       </div>
     </div>

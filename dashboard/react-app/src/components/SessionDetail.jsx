@@ -214,8 +214,9 @@ function ScoringExplanationPanel({ explanation }) {
               marginBottom: 6,
               fontSize: '0.76rem',
             }}>
-              <div style={{ color: 'var(--risk-critical)', fontWeight: 700 }}>
-                ⚠ CRITICAL SCORE CEILING: Capped at {cap.cap_value?.toFixed(1)}/100
+              <div style={{ color: 'var(--risk-critical)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                <span>CRITICAL SCORE CEILING: Capped at {cap.cap_value?.toFixed(1)}/100</span>
               </div>
               <div style={{ color: 'var(--text-secondary)', marginTop: 2 }}>
                 <strong>{cap.finding}</strong> — {cap.reason}
@@ -617,7 +618,8 @@ export default function SessionDetail({ session }) {
           fontSize: '0.76rem',
         }}>
           <div style={{ color: 'var(--risk-critical)', fontWeight: 700, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span>⚠ Cross-Stage Protocol Semantic Discrepancy</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <span>Cross-Stage Protocol Semantic Discrepancy</span>
             <span style={{ fontSize: '0.64rem', fontFamily: 'var(--font-mono)', padding: '1px 5px', borderRadius: 3, background: 'rgba(239,68,68,0.2)' }}>
               {s.validation_status || 'WARNING'}
             </span>
@@ -637,7 +639,8 @@ export default function SessionDetail({ session }) {
           className={`subtab-btn${activeSubTab === 'crypto' ? ' subtab-btn--active' : ''}`}
           onClick={() => setActiveSubTab('crypto')}
         >
-          🔐 Parameters & Crypto
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+          Parameters &amp; Crypto
         </button>
 
         <button
@@ -645,7 +648,8 @@ export default function SessionDetail({ session }) {
           className={`subtab-btn${activeSubTab === 'scoring' ? ' subtab-btn--active' : ''}`}
           onClick={() => setActiveSubTab('scoring')}
         >
-          ⚖ Scoring Audit ({s.posture_score?.toFixed(0)})
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+          Scoring Audit ({s.posture_score?.toFixed(0)})
         </button>
 
         <button
@@ -653,7 +657,8 @@ export default function SessionDetail({ session }) {
           className={`subtab-btn${activeSubTab === 'violations' ? ' subtab-btn--active' : ''}`}
           onClick={() => setActiveSubTab('violations')}
         >
-          🚨 Violations ({violations.length})
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          Violations ({violations.length})
         </button>
 
         {chainLength > 0 && (
@@ -662,7 +667,8 @@ export default function SessionDetail({ session }) {
             className={`subtab-btn${activeSubTab === 'certs' ? ' subtab-btn--active' : ''}`}
             onClick={() => setActiveSubTab('certs')}
           >
-            📜 Cert Chain ({chainLength})
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" x2="8" y1="13" y2="13"/><line x1="16" x2="8" y1="17" y2="17"/></svg>
+            Cert Chain ({chainLength})
           </button>
         )}
 
@@ -671,7 +677,8 @@ export default function SessionDetail({ session }) {
           className={`subtab-btn${activeSubTab === 'ml' ? ' subtab-btn--active' : ''}`}
           onClick={() => setActiveSubTab('ml')}
         >
-          ⚡ ML Outlier {ml.is_anomalous && '(!)'}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          ML Outlier {ml.is_anomalous && '(!)'}
         </button>
 
         <button
@@ -679,7 +686,8 @@ export default function SessionDetail({ session }) {
           className={`subtab-btn${activeSubTab === 'lineage' ? ' subtab-btn--active' : ''}`}
           onClick={() => setActiveSubTab('lineage')}
         >
-          🧬 Lineage & Stages
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 6, verticalAlign: -1 }}><circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="6" y1="9" x2="6" y2="15"/><path d="M18 15a9 9 0 0 0-9-9H6"/></svg>
+          Lineage &amp; Stages
         </button>
       </div>
 
@@ -718,7 +726,7 @@ export default function SessionDetail({ session }) {
               <DetailRow label="Issuer CN"  value={cert.issuer_cn} />
               <DetailRow label="Not After"  value={cert.not_after ? cert.not_after.slice(0, 10) : null}
                          valueClass={cert.validity === 'Expired' ? 'detail-val--red' : 'detail-val--green'} />
-              <DetailRow label="Self-Signed" value={cert.is_self_signed ? 'YES ⚠' : 'No'}
+              <DetailRow label="Self-Signed" value={cert.is_self_signed ? 'YES (Self-Signed)' : 'No'}
                          valueClass={cert.is_self_signed ? 'detail-val--red' : 'detail-val--green'} />
               <DetailRow label="Pre-TLS Bytes" value={s.bytes_pre_tls > 0 ? `${s.bytes_pre_tls} B` : '0'} valueClass={s.bytes_pre_tls > 0 ? 'detail-val--yellow' : 'detail-val--green'} />
             </div>
@@ -732,9 +740,9 @@ export default function SessionDetail({ session }) {
               <DetailRow label="JA4"    value={fp.ja4}  valueClass="detail-val--blue" />
               <DetailRow label="JA4S"   value={fp.ja4s} valueClass="detail-val--blue" />
               <DetailRow label="JA4X"   value={fp.ja4x} valueClass="detail-val--blue" />
-              <DetailRow label="Capture Outlier" value={ml.is_anomalous ? '⚡ YES' : (ml.status === 'INSUFFICIENT_BASELINE' ? '<5 SESSIONS' : 'No')} valueClass={ml.is_anomalous ? 'detail-val--red' : 'detail-val--green'} />
+              <DetailRow label="Capture Outlier" value={ml.is_anomalous ? 'ANOMALOUS' : (ml.status === 'INSUFFICIENT_BASELINE' ? '<5 SESSIONS' : 'No')} valueClass={ml.is_anomalous ? 'detail-val--red' : 'detail-val--green'} />
               <DetailRow label="Liu Anomaly Score" value={ml.anomaly_score != null ? ml.anomaly_score.toFixed(4) : (ml.status === 'INSUFFICIENT_BASELINE' ? '— (<5 baseline)' : '—')} />
-              <DetailRow label="Buffer Inject" value={s.buffer_injection_detected ? '⚠ DETECTED' : 'No'} valueClass={s.buffer_injection_detected ? 'detail-val--red' : 'detail-val--green'} />
+              <DetailRow label="Buffer Inject" value={s.buffer_injection_detected ? 'DETECTED' : 'No'} valueClass={s.buffer_injection_detected ? 'detail-val--red' : 'detail-val--green'} />
               <DetailRow label="PQC State"     value={pqcLabel} valueClass={s.pqc_state === 2 ? 'detail-val--green' : s.pqc_state === 1 ? 'detail-val--blue' : ''} />
               <DetailRow label="Packets"       value={s.packet_count} />
             </div>
@@ -764,8 +772,9 @@ export default function SessionDetail({ session }) {
         {activeSubTab === 'violations' && (
           <div className="fade-in">
             {violations.length === 0 ? (
-              <div style={{ padding: '14px 18px', background: 'var(--risk-low-bg)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 6, fontSize: '0.8rem', color: 'var(--risk-low)' }}>
-                ✅ <strong>Compliant Session:</strong> Zero policy violations detected. This flow satisfies all RFC and NIST baseline mandates.
+              <div style={{ padding: '14px 18px', background: 'var(--risk-low-bg)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 6, fontSize: '0.8rem', color: 'var(--risk-low)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                <span><strong>Compliant Session:</strong> Zero policy violations detected. This flow satisfies all RFC and NIST baseline mandates.</span>
               </div>
             ) : (
               <div className="violations-list">
@@ -903,8 +912,14 @@ export default function SessionDetail({ session }) {
                 fontSize: '0.74rem',
                 color: 'var(--text-secondary)',
                 marginBottom: 16,
+                display: 'flex',
+                alignItems: 'flex-start',
+                gap: 8,
               }}>
-                ℹ️ <strong>Unsupervised Outlier Detection Baseline:</strong> Capture contains fewer than 5 sessions. Capture-relative Isolation Forest anomaly scoring was skipped to prevent unrepresentative false alarms on small sample sizes.
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                <div>
+                  <strong>Unsupervised Outlier Detection Baseline:</strong> Capture contains fewer than 5 sessions. Capture-relative Isolation Forest anomaly scoring was skipped to prevent unrepresentative false alarms on small sample sizes.
+                </div>
               </div>
             )}
 
@@ -917,7 +932,7 @@ export default function SessionDetail({ session }) {
               <div style={{ background: 'var(--bg-panel)', padding: 12, borderRadius: 6, border: '1px solid var(--border-dim)' }}>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.65rem', textTransform: 'uppercase' }}>Liu Anomaly Outlier Status</div>
                 <div style={{ fontSize: '1rem', fontWeight: 700, color: ml.is_anomalous ? 'var(--risk-critical)' : 'var(--risk-low)', marginTop: 4 }}>
-                  {ml.is_anomalous ? '⚡ ANOMALOUS OUTLIER' : 'NORMAL BEHAVIOR'}
+                  {ml.is_anomalous ? 'ANOMALOUS OUTLIER' : 'NORMAL BEHAVIOR'}
                 </div>
               </div>
 

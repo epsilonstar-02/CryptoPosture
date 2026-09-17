@@ -111,7 +111,9 @@ export default function FindingsExplorer({ sessions = [] }) {
   if (findings.length === 0) {
     return (
       <div className="findings-empty-card fade-in">
-        <div style={{ fontSize: '2.5rem', marginBottom: 10 }}>🛡️</div>
+        <div style={{ marginBottom: 12, color: 'var(--risk-low)' }}>
+          <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+        </div>
         <div style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--risk-low)' }}>
           Zero Cryptographic Violations Detected
         </div>
@@ -127,7 +129,9 @@ export default function FindingsExplorer({ sessions = [] }) {
       {/* ── Toolbar: Search & Filters ── */}
       <div className="findings-toolbar">
         <div className="findings-search-box">
-          <span className="findings-search-icon">🔍</span>
+          <span className="findings-search-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </span>
           <input
             type="text"
             className="findings-search-input"
@@ -140,8 +144,9 @@ export default function FindingsExplorer({ sessions = [] }) {
               className="findings-search-clear"
               onClick={() => setSearch('')}
               title="Clear search"
+              aria-label="Clear search"
             >
-              ✕
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           )}
         </div>
@@ -262,7 +267,7 @@ export default function FindingsExplorer({ sessions = [] }) {
               {f.remediation && (
                 <div className="finding-remediation-box">
                   <div className="finding-remediation-header">
-                    <span style={{ fontSize: '0.75rem' }}>💡</span>
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
                     <span>Actionable Remediation Guidance</span>
                   </div>
                   <div className="finding-remediation-content">{f.remediation}</div>

@@ -79,7 +79,9 @@ export default function AnalystWorkspaceModal({ isOpen, onClose, currentUser, to
               <p>Forensic Case Management, Investigation Triage &amp; Assignment for <strong>{currentUser?.username}</strong></p>
             </div>
           </div>
-          <button className="admin-modal-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="admin-modal-close" onClick={onClose} aria-label="Close">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+          </button>
         </div>
 
         {/* Workload Metrics */}
@@ -127,7 +129,7 @@ export default function AnalystWorkspaceModal({ isOpen, onClose, currentUser, to
             <div className="admin-loading-state">Loading your assigned cases...</div>
           ) : filteredCases.length === 0 ? (
             <div className="admin-empty-state">
-              <span>🔍</span>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--text-muted)', marginBottom: 8 }} aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
               <p>No investigations match this triage category.</p>
               <small>Upload a new capture or run a forensic analysis to start triaging.</small>
             </div>

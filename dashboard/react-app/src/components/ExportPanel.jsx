@@ -47,7 +47,7 @@ export default function ExportPanel({ data, onToast }) {
       {/* JSON */}
       <div className="panel export-card">
         <div className="export-card-title">
-          <span style={{ fontSize: '1rem' }}>{ }</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
           JSON Forensic Report
         </div>
         <div className="export-card-desc">
@@ -58,7 +58,7 @@ export default function ExportPanel({ data, onToast }) {
           className="toggle-btn"
           onClick={() => setJsonOpen(v => !v)}
         >
-          <span className={`toggle-chevron${jsonOpen ? ' toggle-chevron--open' : ''}`}>▶</span>
+          <svg className={`toggle-chevron${jsonOpen ? ' toggle-chevron--open' : ''}`} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transition: 'transform 0.2s ease', transform: jsonOpen ? 'rotate(90deg)' : 'rotate(0deg)' }}><polyline points="9 18 15 12 9 6"/></svg>
           {jsonOpen ? 'Hide' : 'Show'} preview
         </button>
 
@@ -66,10 +66,11 @@ export default function ExportPanel({ data, onToast }) {
 
         <div className="export-btn-row">
           <button className="btn btn--primary" onClick={downloadJSON}>
-            ⬇ Download JSON
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download JSON
           </button>
-          <button className="btn btn--ghost btn--copy btn--sm" onClick={copyJSON} title="Copy JSON to clipboard">
-            ⎘
+          <button className="btn btn--ghost btn--copy btn--sm" onClick={copyJSON} title="Copy JSON to clipboard" aria-label="Copy JSON">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
           </button>
         </div>
       </div>
@@ -77,7 +78,7 @@ export default function ExportPanel({ data, onToast }) {
       {/* HTML */}
       <div className="panel export-card">
         <div className="export-card-title">
-          <span style={{ fontSize: '1rem' }}>🌐</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0 }}><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
           HTML Forensic Report
         </div>
         <div className="export-card-desc">
@@ -97,7 +98,8 @@ export default function ExportPanel({ data, onToast }) {
         </div>
 
         <button className="btn btn--primary" onClick={downloadHTML}>
-          ⬇ Download HTML Report
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Download HTML Report
         </button>
       </div>
     </div>
@@ -155,13 +157,13 @@ function buildHTMLReport(data) {
         <div><span class="label">Cert Subject:</span> <strong>${cert.subject_cn || '—'}</strong></div>
         <div><span class="label">Cert Validity:</span> <strong>${cert.validity || '—'} (${cert.key_length_bits || '—'} bits)</strong></div>
         <div><span class="label">JA4:</span> <code>${fp.ja4 || '—'}</code></div>
-        <div><span class="label">Outlier / Liu Score:</span> <strong>${ml.is_anomalous ? '⚡ Outlier' : (ml.status === 'INSUFFICIENT_BASELINE' ? '<5 sessions' : 'Normal')} (${ml.anomaly_score != null ? ml.anomaly_score.toFixed(4) : '—'})</strong></div>
+        <div><span class="label">Outlier / Liu Score:</span> <strong>${ml.is_anomalous ? 'Outlier [!]' : (ml.status === 'INSUFFICIENT_BASELINE' ? '<5 sessions' : 'Normal')} (${ml.anomaly_score != null ? ml.anomaly_score.toFixed(4) : '—'})</strong></div>
       </div>
 
       ${caps.length > 0 ? `
       <div style="margin-top:12px;padding:10px;background:#3d0000;border:1px solid #ef4444;border-radius:6px;font-size:0.85em">
         ${caps.map(c => `
-          <div style="color:#ff6b6b;font-weight:700">⚠ SCORE CAPPED AT ${c.cap_value.toFixed(1)}/100: ${c.finding}</div>
+          <div style="color:#ff6b6b;font-weight:700">[CRITICAL CAP] SCORE CAPPED AT ${c.cap_value.toFixed(1)}/100: ${c.finding}</div>
           <div style="color:#ddd;margin-top:2px">${c.reason}</div>
           ${c.reference ? `<div style="color:#3dd8e8;font-size:0.8em;margin-top:2px">Ref: ${c.reference}</div>` : ''}
         `).join('')}
@@ -173,7 +175,7 @@ function buildHTMLReport(data) {
           <div style="font-size:0.82em;font-weight:700;color:#7b9bff;text-transform:uppercase">Scoring Dimension Audit (Evidence-Aware Dynamic Renormalization)</div>
           ${s.scoring_explanation?.evidence_coverage ? `<div style="font-size:0.75em;color:#aaa">Coverage: <strong>${s.scoring_explanation.evidence_coverage}</strong></div>` : ''}
         </div>
-        ${s.scoring_explanation?.evidence_note ? `<div style="font-size:0.75em;color:#3dd8e8;background:#061826;padding:5px 10px;border-radius:4px;margin-bottom:8px">ℹ ${s.scoring_explanation.evidence_note}</div>` : ''}
+        ${s.scoring_explanation?.evidence_note ? `<div style="font-size:0.75em;color:#3dd8e8;background:#061826;padding:5px 10px;border-radius:4px;margin-bottom:8px">${s.scoring_explanation.evidence_note}</div>` : ''}
         <table class="data-table">
           <thead><tr><th>Dimension</th><th>Observed</th><th>Assessment</th><th>Score</th><th>Base Wt</th><th>Eff Wt</th><th>Contrib</th><th>Standards Basis</th></tr></thead>
           <tbody>
@@ -211,7 +213,7 @@ function buildHTMLReport(data) {
             ${v.remediation ? `<div style="color:#50e9b1;font-size:0.8em;margin-top:2px">Remediation: ${v.remediation}</div>` : ''}
           </div>
         `).join('')}
-      </div>` : '<div style="margin-top:10px;font-size:0.8em;color:#50e9b1">✔ No cryptographic violations detected in this session.</div>'}
+      </div>` : '<div style="margin-top:10px;font-size:0.8em;color:#50e9b1">No cryptographic violations detected in this session.</div>'}
     </div>
     `
   }).join('')
@@ -245,7 +247,7 @@ function buildHTMLReport(data) {
 <div class="container">
   <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;margin-bottom:16px">
     <div>
-      <h1>🔐 Email Cryptographic Posture Forensic Report</h1>
+      <h1>Email Cryptographic Posture Forensic Report</h1>
       <div style="color:#777;font-size:0.8rem">AI-Assisted Passive Network Forensics &nbsp;·&nbsp; Authorized Forensic Audit Trail &nbsp;·&nbsp; Generated: ${now}</div>
     </div>
     <div style="text-align:right">
@@ -265,7 +267,7 @@ function buildHTMLReport(data) {
       <div><span class="label">Packet Count</span><br/><strong>${(ev.total_packets || 0).toLocaleString()} packets</strong></div>
       <div><span class="label">File Size</span><br/><strong>${(ev.file_size_bytes || 0).toLocaleString()} bytes</strong></div>
       <div><span class="label">Capture Duration</span><br/><strong>${(ev.capture_duration || 0).toFixed(3)} seconds</strong></div>
-      <div><span class="label">Integrity Status</span><br/><strong style="color:${ev.is_tamper_free === false ? '#ef4444' : '#22c55e'}">${ev.is_tamper_free === false ? '⚠ Tamper Detected' : '✔ Verified Tamper-Free'}</strong></div>
+      <div><span class="label">Integrity Status</span><br/><strong style="color:${ev.is_tamper_free === false ? '#ef4444' : '#22c55e'}">${ev.is_tamper_free === false ? 'Tamper Detected' : 'Verified Tamper-Free'}</strong></div>
     </div>
   </div>
 
@@ -300,7 +302,7 @@ function buildHTMLReport(data) {
   ${sessionCards}
 
   <div class="footer">
-    🔐 CryptoPosture · AI-Assisted Passive Network Forensic Framework &nbsp;·&nbsp; Grounded in RFC 9325, RFC 8314, RFC 8996 &amp; NIST SP 800-52r2.<br/>
+    CryptoPosture · AI-Assisted Passive Network Forensic Framework &nbsp;·&nbsp; Grounded in RFC 9325, RFC 8314, RFC 8996 &amp; NIST SP 800-52r2.<br/>
     SIH-26 Demo &nbsp;·&nbsp; Authoritative forensic export generated for evidentiary audit and review.
   </div>
 </div>

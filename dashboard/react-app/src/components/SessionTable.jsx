@@ -150,7 +150,9 @@ export default function SessionTable({ sessions = [] }) {
   if (!sessions || sessions.length === 0) {
     return (
       <div className="no-sessions fade-in">
-        <div className="no-sessions-icon">📭</div>
+        <div className="no-sessions-icon">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.6 }}><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+        </div>
         <div>No email sessions detected in this PCAP.</div>
         <div style={{ fontSize: '0.68rem', marginTop: 6, color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
           Ensure the capture contains SMTP/IMAP/POP3 traffic on standard ports (25, 465, 587, 110, 995, 143, 993).
@@ -166,7 +168,9 @@ export default function SessionTable({ sessions = [] }) {
         {/* Row 1: Search & Counts */}
         <div className="session-search-row">
           <div className="findings-search-box" style={{ flex: 1 }}>
-            <span className="findings-search-icon">🔍</span>
+            <span className="findings-search-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </span>
             <input
               type="text"
               className="findings-search-input"
@@ -182,8 +186,9 @@ export default function SessionTable({ sessions = [] }) {
                 className="findings-search-clear"
                 onClick={() => setSearch('')}
                 title="Clear search"
+                aria-label="Clear search"
               >
-                ✕
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
               </button>
             )}
           </div>
@@ -229,7 +234,10 @@ export default function SessionTable({ sessions = [] }) {
                 }}
                 title="Show only sessions flagged as ML Isolation Forest outliers"
               >
-                <span>⚡ Outliers</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                  Outliers
+                </span>
                 <span className="toggle-chip-count">{outlierCount}</span>
               </button>
             )}
@@ -244,7 +252,10 @@ export default function SessionTable({ sessions = [] }) {
                 }}
                 title="Show only sessions with Post-Quantum Cryptography (PQC) offered or negotiated"
               >
-                <span>🛡 PQC Ready</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  PQC Ready
+                </span>
                 <span className="toggle-chip-count">{pqcCount}</span>
               </button>
             )}
@@ -259,7 +270,10 @@ export default function SessionTable({ sessions = [] }) {
                 }}
                 title="Show sessions with cross-stage protocol semantic warnings"
               >
-                <span>⚠ Discrepancies</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Discrepancies
+                </span>
                 <span className="toggle-chip-count">{warningCount}</span>
               </button>
             )}
@@ -281,7 +295,9 @@ export default function SessionTable({ sessions = [] }) {
       {/* ── Empty State when Filters Match Nothing ── */}
       {sorted.length === 0 ? (
         <div className="no-sessions fade-in" style={{ margin: '14px 0' }}>
-          <div className="no-sessions-icon">🔍</div>
+          <div className="no-sessions-icon" style={{ display: 'flex', justifyContent: 'center', marginBottom: 8, color: 'var(--text-muted)' }}>
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          </div>
           <div>No sessions matched the active search and filter criteria.</div>
           <button
             type="button"
@@ -351,9 +367,9 @@ export default function SessionTable({ sessions = [] }) {
                       {s.validation_warnings && s.validation_warnings.length > 0 && (
                         <span
                           title={`Validation warning: ${s.validation_warnings[0]}`}
-                          style={{ color: 'var(--risk-medium)', marginRight: 4, fontSize: '0.8rem' }}
+                          style={{ color: 'var(--risk-medium)', marginRight: 5, display: 'inline-flex', verticalAlign: 'middle' }}
                         >
-                          ⚠
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
                         </span>
                       )}
                       {s.src_ip}:{s.src_port}&nbsp;→&nbsp;{s.dst_ip}:{s.dst_port}
@@ -441,9 +457,9 @@ export default function SessionTable({ sessions = [] }) {
                         {s.scoring_explanation?.critical_caps_applied?.length > 0 && (
                           <span
                             title={`Score capped at ${s.scoring_explanation.critical_caps_applied[0].cap_value}: ${s.scoring_explanation.critical_caps_applied[0].finding}`}
-                            style={{ fontSize: '0.65rem', color: 'var(--risk-critical)', cursor: 'help' }}
+                            style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--risk-critical)', cursor: 'help' }}
                           >
-                            🛑
+                            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
                           </span>
                         )}
                       </div>
@@ -456,8 +472,8 @@ export default function SessionTable({ sessions = [] }) {
                           <span className={`risk-dot risk-dot--${s.risk_tier}`} />
                           {s.risk_tier}
                           {ml.is_anomalous && (
-                            <span title="Liu Anomaly Outlier Detected (s >= 0.65)" style={{ marginLeft: 2 }}>
-                              ⚡
+                            <span title="Liu Anomaly Outlier Detected (s >= 0.65)" style={{ display: 'inline-flex', alignItems: 'center', marginLeft: 3 }}>
+                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
                             </span>
                           )}
                         </span>

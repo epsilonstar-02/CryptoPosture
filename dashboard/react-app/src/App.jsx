@@ -11,6 +11,22 @@ import AnalystWorkspaceModal from './components/AnalystWorkspaceModal.jsx'
 
 const API = ''
 
+const PALETTES = [
+  // Core Palettes
+  { id: 'ember-slate',     name: 'Ember & Slate',     category: 'Classic', desc: 'Charcoal base & warm amber',   color: '#f59e0b' },
+  { id: 'ocean-frost',     name: 'Ocean Frost',      category: 'Icy',     desc: 'Deep navy & electric cyan',    color: '#06b6d4' },
+  { id: 'emerald-mist',    name: 'Emerald Mist',     category: 'Forest',  desc: 'Forest obsidian & jade gold',  color: '#10b981' },
+  { id: 'warm-sunset',     name: 'Warm Sunset',      category: 'Vivid',   desc: 'Burgundy & sunset orange',     color: '#f97316' },
+  { id: 'soft-bloom',      name: 'Soft Bloom',       category: 'Warm',    desc: 'Dark plum & violet orchid',    color: '#c084fc' },
+
+  // Specialized Forensics & Security Palettes
+  { id: 'cyber-sentinel',  name: 'Cyber Sentinel',   category: 'SOC',     desc: 'SOC midnight & electric cyan', color: '#00f0ff' },
+  { id: 'quantum-kyber',   name: 'Quantum Kyber',    category: 'PQC',     desc: 'Post-quantum obsidian & teal', color: '#2dd4bf' },
+  { id: 'zero-trust',      name: 'Zero Trust',       category: 'Threat',  desc: 'Vantablack & incident crimson',color: '#fb7185' },
+  { id: 'deep-nebula',     name: 'Deep Nebula',      category: 'Space',   desc: 'Cosmic void & amethyst glow',  color: '#a855f7' },
+  { id: 'aurora-borealis', name: 'Aurora Borealis',  category: 'Boreal',  desc: 'Arctic night & boreal emerald',color: '#34d399' },
+]
+
 export default function App() {
   const [result,        setResult]        = useState(null)
   const [loading,       setLoading]       = useState(false)
@@ -20,6 +36,11 @@ export default function App() {
   const [analysisMs,    setAnalysisMs]    = useState(null)
   const [lastAnalyzedAt, setLastAnalyzedAt] = useState(null)
   const { toasts, push, dismiss } = useToast()
+
+  // Theme & Palette state
+  const [palette, setPalette] = useState(() => localStorage.getItem('glass_palette') || 'ember-slate')
+  const [paletteMenuOpen, setPaletteMenuOpen] = useState(false)
+  const paletteMenuRef = useRef(null)
 
   // Authentication & History state
   const [token, setToken] = useState(() => localStorage.getItem('auth_token') || '')
@@ -33,6 +54,31 @@ export default function App() {
 
   // Holds the finished API result until the overlay signals it's done
   const pendingRef = useRef(null)
+
+  // Sync palette to document element
+  useEffect(() => {
+    localStorage.setItem('glass_palette', palette)
+    document.documentElement.setAttribute('data-theme', palette)
+  }, [palette])
+
+  // Close palette dropdown when clicking outside
+  useEffect(() => {
+    if (!paletteMenuOpen) return
+    const handleClickOutside = (e) => {
+      if (paletteMenuRef.current && !paletteMenuRef.current.contains(e.target)) {
+        setPaletteMenuOpen(false)
+      }
+    }
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') setPaletteMenuOpen(false)
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [paletteMenuOpen])
 
   const navigate  = useNavigate()
   const location  = useLocation()
@@ -205,13 +251,23 @@ export default function App() {
   const isAnalysisRoute = location.pathname === '/analysis'
 
   return (
-    <div className="app-shell">
+    <div className="app-shell" data-theme={palette}>
+      {/* ── Background Scene: Fixed organic blurred animated blobs ── */}
+      <div className="bg-scene" aria-hidden="true">
+        <div className="blob blob-1" />
+        <div className="blob blob-2" />
+        <div className="blob blob-3" />
+      </div>
+
       {/* ── Top bar ── */}
-      <header className="topbar">
+      <header className="topbar glass-nav">
         {/* Logo — always navigates home */}
-        <Link to="/" className="topbar-brand" onClick={startNewCase}>
+        <Link to="/" className="topbar-brand" onClick={startNewCase} title="CryptoPosture — Passive Network Forensics">
           <div className="topbar-mark">
-            <img src="/assets/shield-check.svg" alt="" />
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-primary)" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <path d="m9 12 2 2 4-4"/>
+            </svg>
           </div>
           <span>Crypto<span>Posture</span></span>
         </Link>
@@ -242,14 +298,77 @@ export default function App() {
             {apiStatus === 'online' ? 'ONLINE' : apiStatus === 'loading' ? 'CONNECTING' : 'OFFLINE'}
           </span>
 
+          {/* Palette Selector Dropdown */}
+          <div className="palette-menu-container" ref={paletteMenuRef}>
+            <button
+              type="button"
+              className={`btn-palette-topbar ${paletteMenuOpen ? 'btn-palette-topbar--open' : ''}`}
+              onClick={() => setPaletteMenuOpen((prev) => !prev)}
+              title={`Theme Palette: ${PALETTES.find((p) => p.id === palette)?.name}`}
+              aria-expanded={paletteMenuOpen}
+            >
+              <span
+                className="palette-dot"
+                style={{ background: PALETTES.find((p) => p.id === palette)?.color }}
+              />
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
+                <circle cx="17.5" cy="10.5" r=".5" fill="currentColor" />
+                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor" />
+                <circle cx="6.5" cy="12.5" r=".5" fill="currentColor" />
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z" />
+              </svg>
+              <span className="palette-label">{PALETTES.find((p) => p.id === palette)?.name}</span>
+              <span className="palette-caret">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: paletteMenuOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s ease' }} aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"/>
+                </svg>
+              </span>
+            </button>
+
+            {paletteMenuOpen && (
+              <div className="glass-menu palette-dropdown fade-in">
+                <div className="palette-dropdown-title">Theme Palette ({PALETTES.length})</div>
+                <div className="palette-dropdown-scroll">
+                  {PALETTES.map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      className={`palette-dropdown-item ${palette === p.id ? 'palette-dropdown-item--active' : ''}`}
+                      onClick={() => {
+                        setPalette(p.id)
+                        setPaletteMenuOpen(false)
+                        push(`Switched to ${p.name} palette`, 'info')
+                      }}
+                    >
+                      <span className="palette-color-swatch" style={{ background: p.color, boxShadow: `0 0 10px ${p.color}88` }} />
+                      <div className="palette-item-text">
+                        <span className="palette-item-name">
+                          <span>{p.name}</span>
+                          {p.category && <span className="palette-category-badge">{p.category}</span>}
+                        </span>
+                        <span className="palette-item-desc">{p.desc}</span>
+                      </div>
+                      {palette === p.id && (
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={p.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
           <button
             type="button"
             className="btn-history-topbar"
             onClick={() => setHistoryOpen(true)}
             title="Open Investigation History"
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
-            History
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            <span>History</span>
           </button>
 
           {/* Role-specific topbar quick action buttons */}
@@ -260,8 +379,8 @@ export default function App() {
               onClick={() => setAdminModalOpen(true)}
               title="Open Admin Console"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
-              Admin Console
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              <span>Admin Console</span>
             </button>
           )}
 
@@ -272,13 +391,16 @@ export default function App() {
               onClick={() => setAnalystModalOpen(true)}
               title="Open Analyst Operations Workspace"
             >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-              Analyst Workspace
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              <span>Analyst Workspace</span>
             </button>
           )}
 
           {isAnalysisRoute && result && (
-            <button className="new-case" onClick={startNewCase}>+ New case</button>
+            <button type="button" className="btn-new-case" onClick={startNewCase} title="Start a new PCAP investigation">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              <span>New Case</span>
+            </button>
           )}
 
           <div className="topbar-user-area" ref={userMenuRef}>
@@ -307,7 +429,7 @@ export default function App() {
                 </button>
 
                 {userMenuOpen && (
-                  <div className="user-dropdown-menu fade-in">
+                  <div className="glass-menu user-dropdown-menu fade-in">
                     <div className="user-dropdown-header">
                       <div className="user-dropdown-name">{currentUser.username}</div>
                       <div className="user-dropdown-email">{currentUser.email || `${currentUser.role} account`}</div>
@@ -395,9 +517,10 @@ export default function App() {
                 type="button"
                 className="btn-signin"
                 onClick={() => setAuthModalOpen(true)}
+                title="Sign in as Analyst or Administrator"
               >
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
-                Sign In
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+                <span>Sign In</span>
               </button>
             )}
           </div>
