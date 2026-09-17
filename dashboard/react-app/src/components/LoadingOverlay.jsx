@@ -229,7 +229,12 @@ export default function LoadingOverlay({ loading, hasError, onDone }) {
               className={`loading-step${isDone ? ' loading-step--done' : isActive ? ' loading-step--active' : ''}`}
             >
               <span className="loading-step-icon">
-                {isDone ? '✓' : isActive ? '▶' : '○'}
+                {isDone
+                  ? <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+                  : isActive
+                  ? <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+                  : <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/></svg>
+                }
               </span>
               {step}{isActive ? '…' : ''}
             </div>

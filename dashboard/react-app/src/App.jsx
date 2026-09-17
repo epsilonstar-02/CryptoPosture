@@ -244,7 +244,8 @@ export default function App() {
             onClick={() => setHistoryOpen(true)}
             title="Open Investigation History"
           >
-            🗄️ History
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+            History
           </button>
 
           {isAnalysisRoute && result && (
@@ -261,12 +262,19 @@ export default function App() {
                   title={`Signed in as ${currentUser.username} (${currentUser.role})`}
                   aria-expanded={userMenuOpen}
                 >
-                  <span className="user-badge-avatar">👤</span>
+                  <span className="user-badge-avatar">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </span>
                   <span className="user-badge-name">{currentUser.username}</span>
                   <span className={`user-role-tag user-role-tag--${currentUser.role === 'admin' ? 'admin' : currentUser.role === 'lead_analyst' ? 'lead' : currentUser.role === 'auditor' ? 'auditor' : 'analyst'}`}>
                     {currentUser.role}
                   </span>
-                  <span className="user-badge-caret">{userMenuOpen ? '▲' : '▼'}</span>
+                  <span className="user-badge-caret">
+                    {userMenuOpen
+                      ? <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m18 15-6-6-6 6"/></svg>
+                      : <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+                    }
+                  </span>
                 </button>
 
                 {userMenuOpen && (
@@ -286,7 +294,9 @@ export default function App() {
                         setHistoryOpen(true)
                       }}
                     >
-                      <span className="user-dropdown-item-icon">🗄️</span>
+                      <span className="user-dropdown-item-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5V19A9 3 0 0 0 21 19V5"/><path d="M3 12A9 3 0 0 0 21 12"/></svg>
+                      </span>
                       <div className="user-dropdown-item-content">
                         <span className="user-dropdown-item-title">Investigation History</span>
                         <span className="user-dropdown-item-sub">View past PCAP analyses</span>
@@ -303,7 +313,9 @@ export default function App() {
                         handleLogout()
                       }}
                     >
-                      <span className="user-dropdown-item-icon">🚪</span>
+                      <span className="user-dropdown-item-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+                      </span>
                       <div className="user-dropdown-item-content">
                         <span className="user-dropdown-item-title">Sign Out</span>
                       </div>
@@ -317,7 +329,8 @@ export default function App() {
                 className="btn-signin"
                 onClick={() => setAuthModalOpen(true)}
               >
-                🔑 Sign In
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>
+                Sign In
               </button>
             )}
           </div>

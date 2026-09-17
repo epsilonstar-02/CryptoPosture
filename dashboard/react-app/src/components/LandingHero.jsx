@@ -149,7 +149,9 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
               accept=".pcap,.pcapng"
               onChange={e => receive(e.target.files[0])}
             />
-            <div className="intake-icon-big">⌁</div>
+            <div className="intake-icon-big">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            </div>
             <div className="intake-title">Open evidence capture</div>
             <div className="intake-sub">Drop PCAP / PCAPNG · or click to browse</div>
             <div className="intake-arrow">→ Supports .pcap and .pcapng</div>
@@ -321,7 +323,9 @@ export default function LandingHero({ onFile, onSample, loading, apiStatus, samp
               <span className="demo-run">Run scenario <b>→</b></span>
 
               {/* Play overlay on hover */}
-              <span className="demo-play-overlay" aria-hidden="true">▶</span>
+              <span className="demo-play-overlay" aria-hidden="true">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><polygon points="5,3 19,12 5,21"/></svg>
+              </span>
             </button>
           ))}
         </div>
