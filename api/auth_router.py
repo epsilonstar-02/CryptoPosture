@@ -5,15 +5,18 @@ Authentication and user lifecycle REST endpoints:
 - User login (JSON & OAuth2 form)
 - Current user profile (/me)
 - User management (Admin only)
-- Audit log explorer (Admin only)
+- Audit log explorer (Admin & Lead Analyst)
 """
 
 from __future__ import annotations
 
+import csv
+import io
 import logging
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import Response
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import Session
@@ -43,6 +46,15 @@ class UserRegisterRequest(BaseModel):
     email: str = Field(..., min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
     password: str = Field(..., min_length=6, max_length=128)
     full_name: Optional[str] = Field(None, max_length=100)
+
+
+class UserCreateByAdminRequest(BaseModel):
+    username: str = Field(..., min_length=3, max_length=50, pattern=r"^[a-zA-Z0-9_\-]+$")
+    email: str = Field(..., min_length=5, max_length=255, pattern=r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
+    password: str = Field(..., min_length=6, max_length=128)
+    full_name: Optional[str] = Field(None, max_length=100)
+    role: str = Field("analyst", pattern=r"^(admin|analyst)$")
+    is_active: bool = True
 
 
 class UserLoginRequest(BaseModel):
@@ -242,6 +254,53 @@ def list_users(
     return [UserResponse(**u.to_dict()) for u in users]
 
 
+@auth_router.post("/users", response_model=UserResponse, summary="Provision new user account (Admin only)")
+def create_user_by_admin(
+    req: UserCreateByAdminRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role("admin")),
+):
+    """Admin-only user provisioning."""
+    clean_username = req.username.strip().lower()
+    clean_email = req.email.strip().lower()
+
+    if db.query(User).filter(User.username == clean_username).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error_code": "USERNAME_EXISTS", "message": f"Username '{clean_username}' already exists."},
+        )
+
+    if db.query(User).filter(User.email == clean_email).first():
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"error_code": "EMAIL_EXISTS", "message": f"Email '{clean_email}' already exists."},
+        )
+
+    new_user = User(
+        username=clean_username,
+        email=clean_email,
+        hashed_password=hash_password(req.password),
+        full_name=req.full_name.strip() if req.full_name else None,
+        role=req.role,
+        is_active=req.is_active,
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    log_audit_event(
+        db=db,
+        action="USER_CREATED",
+        user=admin,
+        resource_id=str(new_user.id),
+        details=f"Admin '{admin.username}' provisioned user '{new_user.username}' with role '{new_user.role}'",
+        request=request,
+    )
+
+    return UserResponse(**new_user.to_dict())
+
+
 @auth_router.patch("/users/{user_id}", response_model=UserResponse, summary="Update user role or status (Admin only)")
 def update_user(
     user_id: int,
@@ -283,23 +342,92 @@ def update_user(
     return UserResponse(**target_user.to_dict())
 
 
+@auth_router.delete("/users/{user_id}", summary="Delete a user account (Admin only)")
+def delete_user(
+    user_id: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_role("admin")),
+):
+    """Delete user. Restricted to Admin. Admin cannot delete self."""
+    target_user = db.query(User).filter(User.id == user_id).first()
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found.")
+
+    if target_user.id == admin.id:
+        raise HTTPException(status_code=400, detail="Cannot delete your own admin account.")
+
+    username = target_user.username
+    db.delete(target_user)
+    db.commit()
+
+    log_audit_event(
+        db=db,
+        action="USER_DELETED",
+        user=admin,
+        resource_id=str(user_id),
+        details=f"Admin '{admin.username}' deleted user '{username}' (ID: {user_id})",
+        request=request,
+    )
+
+    return {"status": "ok", "deleted_user": username}
+
+
 @auth_router.get("/audit-logs", summary="List forensic audit logs (Admin only)")
 def get_audit_logs(
-    limit: int = 100,
-    offset: int = 0,
+    limit: int = Query(100, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    action: Optional[str] = Query(None, description="Filter by audit action"),
+    username: Optional[str] = Query(None, description="Filter by actor username"),
+    search: Optional[str] = Query(None, description="Search details or resource"),
     db: Session = Depends(get_db),
     _authorized_user: User = Depends(require_role("admin")),
 ):
-    """View forensic audit trail of all platform activities."""
-    logs = (
-        db.query(AuditLog)
-        .order_by(AuditLog.timestamp.desc())
-        .offset(offset)
-        .limit(min(limit, 500))
-        .all()
-    )
-    total = db.query(AuditLog).count()
+    """View forensic audit trail of all platform activities with filtering."""
+    query = db.query(AuditLog)
+    if action:
+        query = query.filter(AuditLog.action == action.upper())
+    if username:
+        query = query.filter(AuditLog.username.ilike(f"%{username.strip()}%"))
+    if search:
+        pattern = f"%{search.strip()}%"
+        query = query.filter((AuditLog.details.ilike(pattern)) | (AuditLog.resource_id.ilike(pattern)))
+
+    total = query.count()
+    logs = query.order_by(AuditLog.timestamp.desc()).offset(offset).limit(limit).all()
     return {
         "total": total,
         "logs": [log.to_dict() for log in logs],
     }
+
+
+@auth_router.get("/audit-logs/export", summary="Export audit logs as CSV or JSON (Admin only)")
+def export_audit_logs(
+    format: str = Query("csv", pattern=r"^(csv|json)$"),
+    db: Session = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    """Export forensic audit logs for regulatory compliance."""
+    logs = db.query(AuditLog).order_by(AuditLog.timestamp.desc()).limit(1000).all()
+    if format == "json":
+        return [log.to_dict() for log in logs]
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Timestamp UTC", "User", "Action", "Resource ID", "IP Address", "Details"])
+    for log in logs:
+        writer.writerow([
+            log.id,
+            log.timestamp.isoformat() if log.timestamp else "",
+            log.username or "anonymous",
+            log.action,
+            log.resource_id or "",
+            log.ip_address or "",
+            log.details or "",
+        ])
+    csv_data = output.getvalue()
+    return Response(
+        content=csv_data,
+        media_type="text/csv",
+        headers={"Content-Disposition": "attachment; filename=audit_logs_export.csv"},
+    )

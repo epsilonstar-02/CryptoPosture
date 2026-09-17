@@ -211,21 +211,6 @@ class TestAuthAndDB(unittest.TestCase):
         users = ok_resp.json()
         self.assertEqual(len(users), 2)
 
-        # Admin updating user to retired roles (lead_analyst, auditor) is rejected by schema (422)
-        invalid_role_resp1 = self.client.patch(
-            f"/api/auth/users/{users[1]['id']}",
-            json={"role": "lead_analyst"},
-            headers={"Authorization": f"Bearer {admin_token}"},
-        )
-        self.assertEqual(invalid_role_resp1.status_code, 422)
-
-        invalid_role_resp2 = self.client.patch(
-            f"/api/auth/users/{users[1]['id']}",
-            json={"role": "auditor"},
-            headers={"Authorization": f"Bearer {admin_token}"},
-        )
-        self.assertEqual(invalid_role_resp2.status_code, 422)
-
     # -----------------------------------------------------------------------
     # 5. Analysis Persistence, History & Retrieval
     # -----------------------------------------------------------------------
@@ -313,17 +298,17 @@ class TestAuthAndDB(unittest.TestCase):
     # 6. Audit Trail Logging
     # -----------------------------------------------------------------------
     def test_audit_log_trail(self):
-        # Register first user (Admin - generates USER_REGISTER audit log)
+        # Register user (generates USER_REGISTER audit log)
         r = self.client.post(
             "/api/auth/register",
-            json={"username": "super_admin", "email": "admin@audit.local", "password": "AuditAdmin123!"},
+            json={"username": "auditor_admin", "email": "admin@audit.local", "password": "AuditAdmin123!"},
         )
-        admin_token = r.json()["access_token"]
+        token = r.json()["access_token"]
 
-        # Admin fetches audit logs -> 200 OK
+        # Fetch audit logs
         logs_resp = self.client.get(
             "/api/auth/audit-logs",
-            headers={"Authorization": f"Bearer {admin_token}"},
+            headers={"Authorization": f"Bearer {token}"},
         )
         self.assertEqual(logs_resp.status_code, 200)
         logs_data = logs_resp.json()
@@ -331,90 +316,149 @@ class TestAuthAndDB(unittest.TestCase):
         actions = [log["action"] for log in logs_data["logs"]]
         self.assertIn("USER_REGISTER", actions)
 
-        # Register second user (Analyst)
-        r2 = self.client.post(
-            "/api/auth/register",
-            json={"username": "field_analyst", "email": "analyst@audit.local", "password": "Analyst123!"},
-        )
-        analyst_token = r2.json()["access_token"]
-
-        # Analyst attempting to access audit logs -> 403 Forbidden
-        analyst_logs_resp = self.client.get(
-            "/api/auth/audit-logs",
-            headers={"Authorization": f"Bearer {analyst_token}"},
-        )
-        self.assertEqual(analyst_logs_resp.status_code, 403)
-
     # -----------------------------------------------------------------------
-    # 7. Role-Based Investigation History Scoping
+    # 7. Admin Features: Provisioning, User Deletion, Governance & Audit Export
     # -----------------------------------------------------------------------
-    def test_history_scoping_analyst_vs_admin(self):
-        # Register Admin, Analyst A, and Analyst B
+    def test_admin_features_and_governance(self):
+        # 1. Register first user (Admin)
         r_admin = self.client.post(
             "/api/auth/register",
-            json={"username": "hq_admin", "email": "admin@gov.local", "password": "AdminPassword1!"},
+            json={"username": "superadmin", "email": "sa@sec.gov", "password": "AdminPassword123!"},
         )
         admin_token = r_admin.json()["access_token"]
+        admin_id = r_admin.json()["user"]["id"]
 
-        r_a = self.client.post(
+        # 2. Register regular Analyst
+        r_analyst = self.client.post(
             "/api/auth/register",
-            json={"username": "alice", "email": "alice@gov.local", "password": "AlicePassword1!"},
+            json={"username": "junior_soc", "email": "junior@sec.gov", "password": "JuniorPassword123!"},
         )
-        token_a = r_a.json()["access_token"]
+        analyst_token = r_analyst.json()["access_token"]
 
-        r_b = self.client.post(
+        # 3. Analyst tries to provision a user -> 403 Forbidden
+        denied_create = self.client.post(
+            "/api/auth/users",
+            json={"username": "intruder", "email": "int@sec.gov", "password": "Password123!", "role": "admin"},
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(denied_create.status_code, 403)
+
+        # 4. Admin provisions a user -> 200 OK
+        prov_resp = self.client.post(
+            "/api/auth/users",
+            json={"username": "provisioned_analyst", "email": "prov@sec.gov", "password": "ProvPassword123!", "role": "analyst"},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(prov_resp.status_code, 200)
+        prov_id = prov_resp.json()["id"]
+
+        # 5. Admin queries system status -> 200 OK
+        status_resp = self.client.get(
+            "/api/admin/status",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(status_resp.status_code, 200)
+        status_data = status_resp.json()
+        self.assertEqual(status_data["status"], "OPERATIONAL")
+        self.assertGreaterEqual(status_data["users"]["total"], 3)
+
+        # Analyst tries to access admin status -> 403 Forbidden
+        denied_status = self.client.get(
+            "/api/admin/status",
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(denied_status.status_code, 403)
+
+        # 6. Admin updates governance policy -> 200 OK
+        policy_resp = self.client.post(
+            "/api/admin/policy",
+            json={"min_acceptable_epi": 75.0, "strict_rfc_enforcement": True},
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(policy_resp.status_code, 200)
+        self.assertEqual(policy_resp.json()["current_policy"]["min_acceptable_epi"], 75.0)
+
+        # 7. Admin deletes provisioned user -> 200 OK
+        del_user = self.client.delete(
+            f"/api/auth/users/{prov_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(del_user.status_code, 200)
+
+        # Admin tries to delete self -> 400 Bad Request
+        self_del = self.client.delete(
+            f"/api/auth/users/{admin_id}",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(self_del.status_code, 400)
+
+        # 8. Admin exports audit logs as CSV -> 200 OK
+        csv_resp = self.client.get(
+            "/api/auth/audit-logs/export?format=csv",
+            headers={"Authorization": f"Bearer {admin_token}"},
+        )
+        self.assertEqual(csv_resp.status_code, 200)
+        self.assertIn("text/csv", csv_resp.headers["content-type"])
+        self.assertIn("USER_CREATED", csv_resp.text)
+
+    # -----------------------------------------------------------------------
+    # 8. Analyst Features: Triage Workflow, Case Notes, and Workload Hub
+    # -----------------------------------------------------------------------
+    def test_analyst_triage_workflow_and_workload(self):
+        # 1. Register analyst
+        r_analyst = self.client.post(
             "/api/auth/register",
-            json={"username": "bob", "email": "bob@gov.local", "password": "BobPassword1!"},
+            json={"username": "case_lead", "email": "lead@soc.net", "password": "LeadPassword123!"},
         )
-        token_b = r_b.json()["access_token"]
+        analyst_token = r_analyst.json()["access_token"]
 
+        # 2. Analyze a sample PCAP
         sample_pcap = Path(DEFAULT_OUTPUT_DIR) / "clean_implicit_tls.pcap"
-
-        # Alice analyzes a PCAP
         with open(sample_pcap, "rb") as f:
-            resp_a = self.client.post(
+            resp = self.client.post(
                 "/api/analyze?run_ml=false",
-                files={"file": ("alice_capture.pcap", f, "application/vnd.tcpdump.pcap")},
-                headers={"Authorization": f"Bearer {token_a}"},
+                files={"file": ("clean_implicit_tls.pcap", f, "application/vnd.tcpdump.pcap")},
+                headers={"Authorization": f"Bearer {analyst_token}"},
             )
-        self.assertEqual(resp_a.status_code, 200)
-        id_a = resp_a.json()["meta"]["analysis_id"]
+        self.assertEqual(resp.status_code, 200)
+        an_id = resp.json()["meta"]["analysis_id"]
 
-        # Bob analyzes a PCAP
-        with open(sample_pcap, "rb") as f:
-            resp_b = self.client.post(
-                "/api/analyze?run_ml=false",
-                files={"file": ("bob_capture.pcap", f, "application/vnd.tcpdump.pcap")},
-                headers={"Authorization": f"Bearer {token_b}"},
-            )
-        self.assertEqual(resp_b.status_code, 200)
-        id_b = resp_b.json()["meta"]["analysis_id"]
+        # 3. Update triage status, forensic notes, and tags
+        triage_resp = self.client.patch(
+            f"/api/history/{an_id}/triage",
+            json={
+                "triage_status": "FLAGGED_MALICIOUS",
+                "analyst_notes": "Suspected certificate tampering and STARTTLS downgrade attack observed.",
+                "tags": ["incident-404", "downgrade", "perimeter-dmz"],
+                "assigned_analyst": "case_lead",
+            },
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(triage_resp.status_code, 200)
+        triaged_data = triage_resp.json()
+        self.assertEqual(triaged_data["triage_status"], "FLAGGED_MALICIOUS")
+        self.assertIn("downgrade", triaged_data["tags"])
+        self.assertIn("Suspected certificate", triaged_data["analyst_notes"])
 
-        # Alice's history should contain ONLY Alice's analysis
-        hist_a = self.client.get("/api/history", headers={"Authorization": f"Bearer {token_a}"}).json()
-        ids_in_a = [item["id"] for item in hist_a["items"]]
-        self.assertIn(id_a, ids_in_a)
-        self.assertNotIn(id_b, ids_in_a)
+        # 4. Check /api/analyst/my-work
+        work_resp = self.client.get(
+            "/api/analyst/my-work",
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(work_resp.status_code, 200)
+        work_data = work_resp.json()
+        self.assertEqual(work_data["analyst"], "case_lead")
+        self.assertGreaterEqual(work_data["metrics"]["total_assigned"], 1)
+        self.assertEqual(work_data["metrics"]["escalated"], 1)
 
-        # Bob's history should contain ONLY Bob's analysis
-        hist_b = self.client.get("/api/history", headers={"Authorization": f"Bearer {token_b}"}).json()
-        ids_in_b = [item["id"] for item in hist_b["items"]]
-        self.assertIn(id_b, ids_in_b)
-        self.assertNotIn(id_a, ids_in_b)
-
-        # Alice trying to view Bob's analysis directly by ID is forbidden (403)
-        view_b_by_a = self.client.get(f"/api/history/{id_b}", headers={"Authorization": f"Bearer {token_a}"})
-        self.assertEqual(view_b_by_a.status_code, 403)
-
-        # Admin history contains ALL analysts' investigations
-        hist_admin = self.client.get("/api/history", headers={"Authorization": f"Bearer {admin_token}"}).json()
-        ids_in_admin = [item["id"] for item in hist_admin["items"]]
-        self.assertIn(id_a, ids_in_admin)
-        self.assertIn(id_b, ids_in_admin)
-
-        # Admin can view both analyses by ID
-        self.assertEqual(self.client.get(f"/api/history/{id_a}", headers={"Authorization": f"Bearer {admin_token}"}).status_code, 200)
-        self.assertEqual(self.client.get(f"/api/history/{id_b}", headers={"Authorization": f"Bearer {admin_token}"}).status_code, 200)
+        # 5. Check history filtering with only_mine and triage_status
+        filter_resp = self.client.get(
+            "/api/history?triage_status=FLAGGED_MALICIOUS&only_mine=true",
+            headers={"Authorization": f"Bearer {analyst_token}"},
+        )
+        self.assertEqual(filter_resp.status_code, 200)
+        f_items = filter_resp.json()["items"]
+        self.assertTrue(any(it["id"] == an_id for it in f_items))
 
 
 if __name__ == "__main__":

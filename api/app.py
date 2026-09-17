@@ -18,17 +18,19 @@ import time
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, FastAPI, File, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from core.auth import get_current_user, get_current_user_optional, log_audit_event, require_role
 from core.db import get_db, init_db
 from core.db_models import AnalysisRecord, AuditLog, User
 from api.auth_router import auth_router
+from api.admin_router import admin_router
 from core.ingestion import (
     CorruptCaptureError,
     EmptyCaptureError,
@@ -107,8 +109,9 @@ app.add_middleware(
 # Initialize database schema
 init_db()
 
-# Mount Authentication & RBAC Router
+# Mount Routers
 app.include_router(auth_router)
+app.include_router(admin_router)
 
 
 # ---------------------------------------------------------------------------
@@ -666,6 +669,13 @@ app.include_router(demo_router)
 # Investigation History Endpoints
 # ---------------------------------------------------------------------------
 
+class TriageUpdateRequest(BaseModel):
+    triage_status: Optional[str] = Field(None, pattern=r"^(UNASSIGNED|UNDER_REVIEW|FLAGGED_MALICIOUS|COMPLIANT|FALSE_POSITIVE|RESOLVED)$")
+    analyst_notes: Optional[str] = None
+    tags: Optional[List[str]] = None
+    assigned_analyst: Optional[str] = None
+
+
 history_router = APIRouter(prefix="/api/history", tags=["Investigation History"])
 
 
@@ -674,7 +684,9 @@ def list_history(
     limit: int = Query(50, ge=1, le=200),
     offset: int = Query(0, ge=0),
     risk_tier: Optional[str] = Query(None, description="Filter by risk tier (CRITICAL, HIGH, MEDIUM, LOW)"),
+    triage_status: Optional[str] = Query(None, description="Filter by triage status"),
     search: Optional[str] = Query(None, description="Filter by filename or SHA-256"),
+    only_mine: bool = Query(False, description="Filter only to current user's captures"),
     db: Session = Depends(get_db),
     _user: Optional[User] = Depends(get_current_user_optional),
 ) -> dict:
@@ -682,6 +694,13 @@ def list_history(
     query = db.query(AnalysisRecord)
     if risk_tier:
         query = query.filter(AnalysisRecord.overall_risk_tier == risk_tier.upper())
+    if triage_status and triage_status.upper() != "ALL":
+        query = query.filter(AnalysisRecord.triage_status == triage_status.upper())
+    if only_mine and _user:
+        query = query.filter(
+            (AnalysisRecord.user_id == _user.id) |
+            (AnalysisRecord.assigned_analyst == _user.username)
+        )
     if search:
         search_pattern = f"%{search.strip()}%"
         query = query.filter(
@@ -713,6 +732,13 @@ def get_historical_analysis(
         )
     try:
         summary_data = json.loads(record.summary_json)
+        # Inject current triage metadata in response
+        summary_data["triage"] = {
+            "status": record.triage_status,
+            "analyst_notes": record.analyst_notes,
+            "tags": [t.strip() for t in record.tags.split(",") if t.strip()] if record.tags else [],
+            "assigned_analyst": record.assigned_analyst or (record.user.username if record.user else None),
+        }
         return JSONResponse(
             content=summary_data,
             headers={
@@ -724,6 +750,53 @@ def get_historical_analysis(
     except Exception as exc:
         logger.exception("Failed to parse stored JSON for analysis %s", analysis_id)
         raise HTTPException(status_code=500, detail="Corrupt stored analysis payload.")
+
+
+@history_router.patch("/{analysis_id}/triage", summary="Update investigation triage status, notes, and tags")
+def update_analysis_triage(
+    analysis_id: str,
+    req: TriageUpdateRequest,
+    request: Request,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Analyst / Admin case management, annotation, and triage workflow."""
+    record = db.query(AnalysisRecord).filter(AnalysisRecord.id == analysis_id).first()
+    if not record:
+        raise HTTPException(status_code=404, detail="Analysis record not found.")
+
+    changes = []
+    if req.triage_status is not None and req.triage_status != record.triage_status:
+        changes.append(f"status: {record.triage_status} -> {req.triage_status}")
+        record.triage_status = req.triage_status
+
+    if req.analyst_notes is not None and req.analyst_notes != record.analyst_notes:
+        changes.append("updated analyst notes")
+        record.analyst_notes = req.analyst_notes
+
+    if req.tags is not None:
+        tag_str = ",".join([t.strip() for t in req.tags if t.strip()])
+        if tag_str != (record.tags or ""):
+            changes.append(f"tags: {tag_str}")
+            record.tags = tag_str
+
+    if req.assigned_analyst is not None and req.assigned_analyst != record.assigned_analyst:
+        changes.append(f"assigned_analyst: {req.assigned_analyst}")
+        record.assigned_analyst = req.assigned_analyst
+
+    if changes:
+        db.commit()
+        db.refresh(record)
+        log_audit_event(
+            db=db,
+            action="TRIAGE_UPDATE",
+            user=current_user,
+            resource_id=analysis_id,
+            details=f"User '{current_user.username}' updated case '{analysis_id}': {', '.join(changes)}",
+            request=request,
+        )
+
+    return record.to_dict(include_full=False)
 
 
 @history_router.delete("/{analysis_id}", summary="Delete an analysis record")
@@ -759,6 +832,45 @@ def delete_historical_analysis(
 
 
 app.include_router(history_router)
+
+
+# ---------------------------------------------------------------------------
+# Analyst Operations Endpoints
+# ---------------------------------------------------------------------------
+
+analyst_router = APIRouter(prefix="/api/analyst", tags=["Analyst Operations"])
+
+
+@analyst_router.get("/my-work", summary="Get current analyst workload & case queue")
+def get_my_work(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> dict:
+    """Retrieve workload, open triage cases, and performance metrics for the authenticated analyst."""
+    query = db.query(AnalysisRecord).filter(
+        (AnalysisRecord.user_id == current_user.id) |
+        (AnalysisRecord.assigned_analyst == current_user.username)
+    )
+    total_assigned = query.count()
+    open_triage = query.filter(AnalysisRecord.triage_status.in_(["UNASSIGNED", "UNDER_REVIEW"])).count()
+    escalated = query.filter(AnalysisRecord.triage_status == "FLAGGED_MALICIOUS").count()
+    resolved = query.filter(AnalysisRecord.triage_status.in_(["RESOLVED", "COMPLIANT"])).count()
+    recent = query.order_by(AnalysisRecord.created_at.desc()).limit(15).all()
+
+    return {
+        "analyst": current_user.username,
+        "role": current_user.role,
+        "metrics": {
+            "total_assigned": total_assigned,
+            "open_triage": open_triage,
+            "escalated": escalated,
+            "resolved": resolved,
+        },
+        "recent_cases": [r.to_dict(include_full=False) for r in recent],
+    }
+
+
+app.include_router(analyst_router)
 
 
 # ---------------------------------------------------------------------------

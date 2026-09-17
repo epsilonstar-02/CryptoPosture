@@ -6,6 +6,7 @@ import FindingsExplorer from './FindingsExplorer.jsx'
 import EvidenceProvenancePanel from './EvidenceProvenancePanel.jsx'
 import ExportPanel, { buildHTMLReport } from './ExportPanel.jsx'
 import AINarrativePanel from './AINarrativePanel.jsx'
+import AnalystTriagePanel from './AnalystTriagePanel.jsx'
 
 function getTierClass(tier) {
   if (tier === 'CRITICAL') return 'kpi-value--critical'
@@ -398,7 +399,7 @@ function EnterpriseExplanationPanel({ explanation, policy, engineVersion, schema
   )
 }
 
-export default function AnalysisPage({ result, analysisMs, onToast }) {
+export default function AnalysisPage({ result, analysisMs, onToast, currentUser, token, onTriageUpdated }) {
   const [activeTab, setActiveTab] = useState('sessions')
   const [digestCopied, setDigestCopied] = useState(false)
 
@@ -489,6 +490,15 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             {totalViolations}
           </div>
           <div className="kpi-sub">RFC/NIST violations</div>
+        </div>
+        <div className="kpi-item">
+          <div className="kpi-label">Triage Verdict</div>
+          <div className="kpi-value" style={{ fontSize: '0.85rem' }}>
+            <span className={`triage-tag triage-tag--${result?.triage?.status || 'UNASSIGNED'}`}>
+              {result?.triage?.status || 'UNASSIGNED'}
+            </span>
+          </div>
+          <div className="kpi-sub">{result?.triage?.assigned_analyst ? `@${result.triage.assigned_analyst}` : 'analyst sign-off'}</div>
         </div>
         {analysisMs != null && (
           <div className="kpi-item">
@@ -669,6 +679,20 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
 
           <button
             type="button"
+            className={`workspace-tab workspace-tab--triage${activeTab === 'triage' ? ' workspace-tab--active' : ''}`}
+            onClick={() => setActiveTab('triage')}
+          >
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            </span>
+            <span>Analyst Triage</span>
+            <span className={`workspace-tab-badge workspace-tab-badge--${(result?.triage?.status || 'UNASSIGNED').toLowerCase()}`}>
+              {result?.triage?.status || 'CASE'}
+            </span>
+          </button>
+
+          <button
+            type="button"
             className={`workspace-tab${activeTab === 'findings' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('findings')}
           >
@@ -717,6 +741,18 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
 
         {/* ── Active Content Area ── */}
         <div className="analysis-content">
+          {activeTab === 'triage' && (
+            <div>
+              <AnalystTriagePanel
+                result={result}
+                currentUser={currentUser}
+                token={token}
+                onToast={onToast}
+                onTriageUpdated={onTriageUpdated}
+              />
+            </div>
+          )}
+
           {activeTab === 'narrative' && (
             <div>
               <AINarrativePanel result={result} onToast={onToast} />

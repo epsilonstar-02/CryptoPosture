@@ -71,6 +71,11 @@ class AnalysisRecord(Base):
 
     user_id = Column(Integer, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
     summary_json = Column(Text, nullable=False)
+    # Triage and Analyst Case Management
+    triage_status = Column(String(30), default="UNASSIGNED", nullable=False, index=True)
+    analyst_notes = Column(Text, nullable=True)
+    tags = Column(String(255), nullable=True)
+    assigned_analyst = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
 
     user = relationship("User", back_populates="analyses")
@@ -93,6 +98,10 @@ class AnalysisRecord(Base):
             "processing_time_ms": self.processing_time_ms,
             "user_id": self.user_id,
             "username": self.user.username if self.user else None,
+            "triage_status": self.triage_status or "UNASSIGNED",
+            "analyst_notes": self.analyst_notes or "",
+            "tags": [t.strip() for t in self.tags.split(",") if t.strip()] if self.tags else [],
+            "assigned_analyst": self.assigned_analyst or (self.user.username if self.user else None),
             "created_at": self.created_at.isoformat() if self.created_at else None,
         }
         if include_full and self.summary_json:

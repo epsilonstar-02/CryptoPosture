@@ -5,6 +5,8 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
   const [loading, setLoading] = useState(false)
   const [search, setSearch] = useState('')
   const [selectedTier, setSelectedTier] = useState('ALL')
+  const [selectedTriage, setSelectedTriage] = useState('ALL')
+  const [onlyMine, setOnlyMine] = useState(false)
   const [loadingId, setLoadingId] = useState(null)
 
   const fetchHistory = useCallback(async () => {
@@ -12,6 +14,8 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
     try {
       const params = new URLSearchParams()
       if (selectedTier !== 'ALL') params.append('risk_tier', selectedTier)
+      if (selectedTriage !== 'ALL') params.append('triage_status', selectedTriage)
+      if (onlyMine && currentUser) params.append('only_mine', 'true')
       if (search.trim()) params.append('search', search.trim())
 
       const headers = token ? { Authorization: `Bearer ${token}` } : {}
@@ -24,7 +28,7 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
     } finally {
       setLoading(false)
     }
-  }, [selectedTier, search, token, onToast])
+  }, [selectedTier, selectedTriage, onlyMine, currentUser, search, token, onToast])
 
   useEffect(() => {
     if (isOpen) {
@@ -119,6 +123,27 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
             />
           </div>
 
+          {/* Scope Toggle: All Team Cases vs My Cases */}
+          {currentUser && (
+            <div className="history-scope-toggle">
+              <button
+                type="button"
+                className={`history-scope-btn ${!onlyMine ? 'history-scope-btn--active' : ''}`}
+                onClick={() => setOnlyMine(false)}
+              >
+                All Team Captures
+              </button>
+              <button
+                type="button"
+                className={`history-scope-btn ${onlyMine ? 'history-scope-btn--active' : ''}`}
+                onClick={() => setOnlyMine(true)}
+              >
+                👤 My Investigations Only
+              </button>
+            </div>
+          )}
+
+          {/* Risk Tier Chips */}
           <div className="history-tier-chips">
             {['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'].map((t) => (
               <button
@@ -129,6 +154,23 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                 {t}
               </button>
             ))}
+          </div>
+
+          {/* Triage Status Filter */}
+          <div style={{ marginTop: 8 }}>
+            <select
+              className="history-triage-select"
+              value={selectedTriage}
+              onChange={(e) => setSelectedTriage(e.target.value)}
+            >
+              <option value="ALL">All Triage Statuses</option>
+              <option value="UNASSIGNED">Unassigned</option>
+              <option value="UNDER_REVIEW">Under Review</option>
+              <option value="FLAGGED_MALICIOUS">Flagged Malicious</option>
+              <option value="COMPLIANT">Compliant</option>
+              <option value="FALSE_POSITIVE">False Positive</option>
+              <option value="RESOLVED">Resolved</option>
+            </select>
           </div>
         </div>
 
@@ -153,9 +195,14 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                   <span className="history-item-name" title={item.filename}>
                     {item.filename}
                   </span>
-                  <span className={`history-tier-pill ${getTierClass(item.overall_risk_tier)}`}>
-                    {item.overall_risk_tier} (EPI {item.enterprise_posture_index?.toFixed(1)})
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span className={`triage-tag triage-tag--${item.triage_status || 'UNASSIGNED'}`}>
+                      {item.triage_status || 'UNASSIGNED'}
+                    </span>
+                    <span className={`history-tier-pill ${getTierClass(item.overall_risk_tier)}`}>
+                      {item.overall_risk_tier} (EPI {item.enterprise_posture_index?.toFixed(1)})
+                    </span>
+                  </div>
                 </div>
 
                 <div className="history-item-meta">
@@ -164,6 +211,14 @@ export default function HistoryDrawer({ isOpen, onClose, onLoadRecord, currentUs
                   <span>🛡️ {item.total_violations} violations</span>
                   {item.username && <span>👤 {item.username}</span>}
                 </div>
+
+                {item.tags && item.tags.length > 0 && (
+                  <div style={{ display: 'flex', gap: 4, margin: '6px 0', flexWrap: 'wrap' }}>
+                    {item.tags.map((tg, idx) => (
+                      <span key={idx} className="case-tag-pill">#{tg}</span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="history-item-sha" title={item.sha256}>
                   SHA256: {item.sha256 ? `${item.sha256.slice(0, 16)}...` : 'N/A'}

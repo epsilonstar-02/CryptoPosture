@@ -49,9 +49,28 @@ def get_db() -> Generator[Session, None, None]:
 
 
 def init_db(target_engine=None) -> None:
-    """Initialize all registered database tables."""
+    """Initialize all registered database tables and apply lightweight migrations."""
     # Import models here to register them with Base.metadata before creating tables
     import core.db_models  # noqa: F401
+    from sqlalchemy import inspect, text
 
     bind_engine = target_engine or engine
     Base.metadata.create_all(bind=bind_engine)
+
+    # Safe migration: ensure analysis_records has triage columns if table already existed
+    try:
+        inspector = inspect(bind_engine)
+        if "analysis_records" in inspector.get_table_names():
+            columns = {col["name"] for col in inspector.get_columns("analysis_records")}
+            with bind_engine.connect() as conn:
+                if "triage_status" not in columns:
+                    conn.execute(text("ALTER TABLE analysis_records ADD COLUMN triage_status VARCHAR(30) DEFAULT 'UNASSIGNED'"))
+                if "analyst_notes" not in columns:
+                    conn.execute(text("ALTER TABLE analysis_records ADD COLUMN analyst_notes TEXT"))
+                if "tags" not in columns:
+                    conn.execute(text("ALTER TABLE analysis_records ADD COLUMN tags VARCHAR(255)"))
+                if "assigned_analyst" not in columns:
+                    conn.execute(text("ALTER TABLE analysis_records ADD COLUMN assigned_analyst VARCHAR(50)"))
+                conn.commit()
+    except Exception:
+        pass

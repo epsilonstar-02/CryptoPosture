@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { Routes, Route, Link, useNavigate, useLocation } from 'react-router-dom'
-import LandingHero    from './components/LandingHero.jsx'
-import AnalysisPage   from './components/AnalysisPage.jsx'
-import LoadingOverlay from './components/LoadingOverlay.jsx'
-import Toast, { useToast } from './components/Toast.jsx'
-import AuthModal      from './components/AuthModal.jsx'
-import HistoryDrawer  from './components/HistoryDrawer.jsx'
+import LandingHero          from './components/LandingHero.jsx'
+import AnalysisPage         from './components/AnalysisPage.jsx'
+import LoadingOverlay       from './components/LoadingOverlay.jsx'
+import Toast, { useToast }  from './components/Toast.jsx'
+import AuthModal            from './components/AuthModal.jsx'
+import HistoryDrawer        from './components/HistoryDrawer.jsx'
+import AdminConsoleModal    from './components/AdminConsoleModal.jsx'
+import AnalystWorkspaceModal from './components/AnalystWorkspaceModal.jsx'
 
 const API = ''
 
@@ -24,6 +26,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null)
   const [authModalOpen, setAuthModalOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
+  const [adminModalOpen, setAdminModalOpen] = useState(false)
+  const [analystModalOpen, setAnalystModalOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const userMenuRef = useRef(null)
 
@@ -248,6 +252,31 @@ export default function App() {
             History
           </button>
 
+          {/* Role-specific topbar quick action buttons */}
+          {currentUser?.role === 'admin' && (
+            <button
+              type="button"
+              className="btn-admin-topbar"
+              onClick={() => setAdminModalOpen(true)}
+              title="Open Admin Console"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+              Admin Console
+            </button>
+          )}
+
+          {currentUser && currentUser.role !== 'admin' && (
+            <button
+              type="button"
+              className="btn-analyst-topbar"
+              onClick={() => setAnalystModalOpen(true)}
+              title="Open Analyst Operations Workspace"
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+              Analyst Workspace
+            </button>
+          )}
+
           {isAnalysisRoute && result && (
             <button className="new-case" onClick={startNewCase}>+ New case</button>
           )}
@@ -266,7 +295,7 @@ export default function App() {
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
                   </span>
                   <span className="user-badge-name">{currentUser.username}</span>
-                  <span className={`user-role-tag user-role-tag--${currentUser.role === 'admin' ? 'admin' : currentUser.role === 'lead_analyst' ? 'lead' : currentUser.role === 'auditor' ? 'auditor' : 'analyst'}`}>
+                  <span className={`user-role-tag user-role-tag--${currentUser.role === 'admin' ? 'admin' : 'analyst'}`}>
                     {currentUser.role}
                   </span>
                   <span className="user-badge-caret">
@@ -281,10 +310,48 @@ export default function App() {
                   <div className="user-dropdown-menu fade-in">
                     <div className="user-dropdown-header">
                       <div className="user-dropdown-name">{currentUser.username}</div>
-                      <div className="user-dropdown-email">{currentUser.email || 'Analyst Account'}</div>
+                      <div className="user-dropdown-email">{currentUser.email || `${currentUser.role} account`}</div>
                     </div>
 
                     <div className="user-dropdown-divider" />
+
+                    {/* Admin Console Item */}
+                    {currentUser.role === 'admin' && (
+                      <button
+                        type="button"
+                        className="user-dropdown-item"
+                        onClick={() => {
+                          setUserMenuOpen(false)
+                          setAdminModalOpen(true)
+                        }}
+                      >
+                        <span className="user-dropdown-item-icon">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+                        </span>
+                        <div className="user-dropdown-item-content">
+                          <span className="user-dropdown-item-title">Admin Console</span>
+                          <span className="user-dropdown-item-sub">User provisioning, audit logs, policy</span>
+                        </div>
+                      </button>
+                    )}
+
+                    {/* Analyst Workspace Item */}
+                    <button
+                      type="button"
+                      className="user-dropdown-item"
+                      onClick={() => {
+                        setUserMenuOpen(false)
+                        setAnalystModalOpen(true)
+                      }}
+                    >
+                      <span className="user-dropdown-item-icon">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+                      </span>
+                      <div className="user-dropdown-item-content">
+                        <span className="user-dropdown-item-title">Analyst Workspace</span>
+                        <span className="user-dropdown-item-sub">My cases, triage queue, metrics</span>
+                      </div>
+                    </button>
 
                     <button
                       type="button"
@@ -366,6 +433,11 @@ export default function App() {
                   result={result}
                   analysisMs={analysisMs}
                   onToast={push}
+                  currentUser={currentUser}
+                  token={token}
+                  onTriageUpdated={(updatedTriage) => {
+                    setResult((prev) => (prev ? { ...prev, triage: updatedTriage } : prev))
+                  }}
                 />
               ) : (
                 /* Guard: if someone navigates to /analysis without data, redirect home */
@@ -393,6 +465,23 @@ export default function App() {
         onLoadRecord={handleLoadRecord}
         currentUser={currentUser}
         token={token}
+        onToast={push}
+      />
+
+      <AdminConsoleModal
+        isOpen={adminModalOpen}
+        onClose={() => setAdminModalOpen(false)}
+        currentUser={currentUser}
+        token={token}
+        onToast={push}
+      />
+
+      <AnalystWorkspaceModal
+        isOpen={analystModalOpen}
+        onClose={() => setAnalystModalOpen(false)}
+        currentUser={currentUser}
+        token={token}
+        onLoadRecord={handleLoadRecord}
         onToast={push}
       />
 
