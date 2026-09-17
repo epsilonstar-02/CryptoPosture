@@ -5,6 +5,7 @@ import SessionTable from './SessionTable.jsx'
 import FindingsExplorer from './FindingsExplorer.jsx'
 import EvidenceProvenancePanel from './EvidenceProvenancePanel.jsx'
 import ExportPanel, { buildHTMLReport } from './ExportPanel.jsx'
+import AINarrativePanel from './AINarrativePanel.jsx'
 
 function getTierClass(tier) {
   if (tier === 'CRITICAL') return 'kpi-value--critical'
@@ -30,8 +31,9 @@ function EnterpriseExplanationPanel({ explanation, policy, engineVersion, schema
       {/* ── Header ── */}
       <div className="audit-panel-header">
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
-            ⚖ Cryptographic Posture Scoring Engine & Enterprise Aggregation Audit
+          <span style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: '0.98rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            Cryptographic Posture Scoring Engine &amp; Enterprise Aggregation Audit
           </span>
           <span className="policy-badge">
             {policy?.id || 'crypto-posture-v1'} v{policy?.version || '1.0'}
@@ -517,7 +519,7 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             onClick={handleQuickDownloadHTML}
             title="Download standalone forensic HTML report"
           >
-            <span>⬇</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>HTML Report</span>
           </button>
           <button
@@ -526,7 +528,7 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             onClick={handleQuickDownloadJSON}
             title="Download machine-readable JSON data"
           >
-            <span>⬇</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span>JSON</span>
           </button>
           <button
@@ -535,7 +537,10 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             onClick={copyDigest}
             title="Copy SHA-256 evidence digest"
           >
-            <span>{digestCopied ? '✓' : '⎘'}</span>
+            {digestCopied
+              ? <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg>
+              : <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+            }
             <span>{digestCopied ? 'Copied' : 'Digest'}</span>
           </button>
           <div className="header-seal">
@@ -580,15 +585,19 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
         {/* Deck Column 3: Forensic Ingestion & Integrity Seal */}
         <div className="command-deck-card deck-card-evidence">
           <div className="deck-card-header">
-            <span className="deck-card-title">Evidence Ingestion & Integrity</span>
+            <span className="deck-card-title">Evidence Ingestion &amp; Integrity</span>
             <span className={`integrity-badge${ev.is_tamper_free === false ? ' integrity-badge--tampered' : ''}`}>
-              {ev.is_tamper_free === false ? '⚠ TAMPERED' : '✔ INTACT'}
+              {ev.is_tamper_free === false
+                ? <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></svg> TAMPERED</>
+                : <><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg> INTACT</>
+              }
             </span>
           </div>
 
           <div className="deck-evidence-body">
             <div className="deck-evidence-filename" title={ev.filename}>
-              📄 {ev.filename || 'Unknown PCAP'}
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: 5, flexShrink: 0 }} aria-hidden="true"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+              {ev.filename || 'Unknown PCAP'}
             </div>
 
             <div className="deck-evidence-hashrow">
@@ -633,12 +642,27 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
       <div className="analysis-layout fade-in">
         {/* ── Sidebar Navigation ── */}
         <div className="analysis-sidebar">
+          {/* AI Summary — top of nav, highlighted */}
+          <button
+            type="button"
+            className={`workspace-tab workspace-tab--ai${activeTab === 'narrative' ? ' workspace-tab--active' : ''}`}
+            onClick={() => setActiveTab('narrative')}
+          >
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 3v2M12 19v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M3 12h2M19 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/><circle cx="12" cy="12" r="4"/></svg>
+            </span>
+            <span>AI Summary</span>
+            {result?.ai_narrative?.narrative && <span className="workspace-tab-badge workspace-tab-badge--ai">NEW</span>}
+          </button>
+
           <button
             type="button"
             className={`workspace-tab${activeTab === 'sessions' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('sessions')}
           >
-            <span className="workspace-tab-icon">🌐</span>
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"/><rect width="20" height="8" x="2" y="14" rx="2" ry="2"/><line x1="6" x2="6.01" y1="6" y2="6"/><line x1="6" x2="6.01" y1="18" y2="18"/></svg>
+            </span>
             <span>Network Sessions</span>
             <span className="workspace-tab-badge">{sessions.length}</span>
           </button>
@@ -648,7 +672,9 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             className={`workspace-tab${activeTab === 'findings' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('findings')}
           >
-            <span className="workspace-tab-icon">🚨</span>
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4M12 17h.01"/></svg>
+            </span>
             <span>Policy Findings</span>
             <span className={`workspace-tab-badge ${totalViolations > 0 ? 'workspace-tab-badge--alert' : ''}`}>
               {totalViolations}
@@ -660,7 +686,9 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             className={`workspace-tab${activeTab === 'audit' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('audit')}
           >
-            <span className="workspace-tab-icon">⚖</span>
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m16 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="m2 16 3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"/><path d="M7 21h10"/><path d="M12 3v18"/><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"/></svg>
+            </span>
             <span>Posture Audit</span>
           </button>
 
@@ -669,8 +697,10 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             className={`workspace-tab${activeTab === 'evidence' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('evidence')}
           >
-            <span className="workspace-tab-icon">🧬</span>
-            <span>Evidence & Lineage</span>
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </span>
+            <span>Evidence &amp; Lineage</span>
           </button>
 
           <button
@@ -678,13 +708,21 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
             className={`workspace-tab${activeTab === 'export' ? ' workspace-tab--active' : ''}`}
             onClick={() => setActiveTab('export')}
           >
-            <span className="workspace-tab-icon">⬇</span>
+            <span className="workspace-tab-icon">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            </span>
             <span>Export Suite</span>
           </button>
         </div>
 
         {/* ── Active Content Area ── */}
         <div className="analysis-content">
+          {activeTab === 'narrative' && (
+            <div>
+              <AINarrativePanel result={result} onToast={onToast} />
+            </div>
+          )}
+
           {activeTab === 'sessions' && (
             <div>
               <SessionTable sessions={sessions} />
@@ -728,7 +766,8 @@ export default function AnalysisPage({ result, analysisMs, onToast }) {
 
       {/* ── Page Footer ── */}
       <div className="footer">
-        🔐 CryptoPosture · AI-Assisted Passive Network Forensic Framework
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        CryptoPosture · AI-Assisted Passive Network Forensic Framework
         for Enterprise Email Cryptographic Posture Assessment<br />
         SIH-26 Demo · For authorized forensic use only · All analyses performed offline.
       </div>
