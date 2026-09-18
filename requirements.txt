@@ -92,3 +92,4 @@ tzdata==2026.4
     # via pandas
 uvicorn==0.52.4
     # via sih-26-demo (pyproject.toml)
+psycopg[binary]
