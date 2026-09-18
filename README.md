@@ -2,7 +2,7 @@
 ## Enterprise Email Cryptographic Posture Assessment
 
 > **Smart India Hackathon (SIH-26) Demo Prototype**
-> 🌐 **Live Demo:** [https://cryptoposture.duckdns.org/](https://cryptoposture.duckdns.org/)
+🌐 **Live Demo:** [https://cryptoposture.duckdns.org/](https://cryptoposture.duckdns.org/)
 A passive, out-of-band forensic framework that ingests PCAP captures of enterprise email traffic (SMTP / IMAP / POP3) and produces per-session cryptographic posture scores, violation reports, and an Enterprise Posture Index — without transmitting a single packet.
 
 ---
